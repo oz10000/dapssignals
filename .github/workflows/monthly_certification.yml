@@ -1,0 +1,34 @@
+name: Monthly Certification
+
+on:
+  schedule:
+    - cron: "0 3 1 * *"   # Día 1 de cada mes, 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - run: pip install -r requirements.txt
+
+      - name: Run certification
+        run: python run_lab.py
+        continue-on-error: true
+
+      - name: Upload certification
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: certification-${{ github.run_number }}
+          path: |
+            reports/CERTIFICATION_REPORT.md
+            reports/full_report.txt
+          retention-days: 365

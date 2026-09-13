@@ -1,34 +1,78 @@
+# .github/workflows/monthly_certification.yml
+# Ejecuta certificación completa el día 1 de cada mes a las 03:00 UTC.
+# Retención de artifacts: 365 días.
+
 name: Monthly Certification
 
 on:
   schedule:
-    - cron: "0 3 1 * *"   # Día 1 de cada mes, 03:00 UTC
+    - cron: "0 3 1 * *"      # Día 1 del mes, 03:00 UTC
   workflow_dispatch:
 
 jobs:
   certify:
+    name: Full Certification
     runs-on: ubuntu-latest
     timeout-minutes: 180
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      - run: pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Run certification
+      - name: Create directories
+        run: |
+          mkdir -p data/raw data/trades data/optimization data/certifications reports
+
+      - name: Run certification pipeline
         run: python run_lab.py
         continue-on-error: true
 
-      - name: Upload certification
+      - name: Display certification
+        if: always()
+        run: |
+          echo "════════════════════════════════════════════════════════════"
+          echo "  CERTIFICATION REPORT"
+          echo "════════════════════════════════════════════════════════════"
+          cat reports/CERTIFICATION_REPORT.md 2>/dev/null || echo "❌ No certification"
+          echo ""
+          echo "════════════════════════════════════════════════════════════"
+          echo "  OPERATIONAL REPORT"
+          echo "════════════════════════════════════════════════════════════"
+          cat reports/OPHELIA_OPERATIONAL_REPORT.md 2>/dev/null || echo "❌ No operational"
+
+      - name: Upload certification artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: certification-${{ github.run_number }}
+          name: ophelia-certification-${{ github.run_number }}
           path: |
-            reports/CERTIFICATION_REPORT.md
-            reports/full_report.txt
+            reports/
+            data/certifications/
+            data/optimization/
           retention-days: 365
+          if-no-files-found: warn
+
+      - name: Create GitHub Release (opcional)
+        if: success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "cert-${{ github.run_number }}"
+          name: "Certification ${{ github.run_number }}"
+          body: |
+            Certificación automática mensual.
+            Ver artifacts para detalles completos.
+          files: |
+            reports/CERTIFICATION_REPORT.md
+            reports/OPHELIA_OPERATIONAL_REPORT.md
+        continue-on-error: true

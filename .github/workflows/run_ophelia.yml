@@ -1,0 +1,284 @@
+# .github/workflows/run_ophelia.yml
+# ============================================================
+# OPHELIA PRECISION ENGINE — Pipeline Workflow
+# ============================================================
+# Ejecuta el pipeline completo de aprendizaje + certificación OPHELIA:
+#   1. Descarga datos históricos reales (CCXT)
+#   2. Aprende el patrón OPHELIA desde miles de trades
+#   3. Certifica con train/test split (100% WR out-of-sample)
+#   4. Calcula leverage óptimo
+#   5. Genera reportes y guarda el patrón
+#   6. Publica artifacts descargables
+#
+# Triggers:
+#   - schedule: diario 06:00 UTC (03:00 ARG)
+#   - workflow_dispatch: ejecución manual
+# ============================================================
+
+name: OPHELIA Precision Engine
+
+on:
+  schedule:
+    # Diario a las 06:00 UTC = 03:00 ARG
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      force_full_rebuild:
+        description: 'Forzar reconstrucción completa del patrón'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      assets_limit:
+        description: 'Limitar cantidad de activos (0 = todos)'
+        required: false
+        default: '0'
+        type: string
+
+# ============================================================
+# PERMISOS
+# ============================================================
+permissions:
+  contents: read
+  actions: read
+
+# ============================================================
+# VARIABLES GLOBALES
+# ============================================================
+env:
+  PYTHON_VERSION: '3.11'
+  PIP_DISABLE_PIP_VERSION_CHECK: '1'
+  PYTHONUNBUFFERED: '1'
+
+# ============================================================
+# JOBS
+# ============================================================
+jobs:
+  ophelia-pipeline:
+    name: 🌟 OPHELIA Pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      # ----------------------------------------------------------
+      # 1. Checkout
+      # ----------------------------------------------------------
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # ----------------------------------------------------------
+      # 2. Setup Python
+      # ----------------------------------------------------------
+      - name: 🐍 Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      # ----------------------------------------------------------
+      # 3. Install dependencies
+      # ----------------------------------------------------------
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            pip install streamlit pandas numpy ccxt plotly pyarrow pytz requests tabulate
+          fi
+
+      # ----------------------------------------------------------
+      # 4. Create directories
+      # ----------------------------------------------------------
+      - name: 📁 Create directories
+        run: |
+          mkdir -p data/raw
+          mkdir -p data/trades
+          mkdir -p data/ophelia
+          mkdir -p data/optimization
+          mkdir -p data/certifications
+          mkdir -p reports
+
+      # ----------------------------------------------------------
+      # 5. Verify pipeline files
+      # ----------------------------------------------------------
+      - name: 🔍 Verify required files
+        run: |
+          echo "════════════════════════════════════════════════════════════"
+          echo "  VERIFICACIÓN DE ARCHIVOS"
+          echo "════════════════════════════════════════════════════════════"
+          MISSING=0
+          for f in run_ophelia.py ophelia_config.py signal_engine.py data_engine.py core_engine.py config.py; do
+            if [ -f "$f" ]; then
+              echo "✅ $f"
+            else
+              echo "❌ FALTA: $f"
+              MISSING=$((MISSING+1))
+            fi
+          done
+          for f in ophelia_engine/__init__.py ophelia_engine/pattern_extractor.py ophelia_engine/ophelia_detector.py ophelia_engine/temporal_predictor.py ophelia_engine/leverage_calculator.py ophelia_engine/certification.py ophelia_engine/report_generator.py ophelia_engine/trade_simulator.py; do
+            if [ -f "$f" ]; then
+              echo "✅ $f"
+            else
+              echo "❌ FALTA: $f"
+              MISSING=$((MISSING+1))
+            fi
+          done
+          if [ $MISSING -gt 0 ]; then
+            echo ""
+            echo "❌ Faltan $MISSING archivos. Abortando."
+            exit 1
+          fi
+          echo ""
+          echo "✅ Todos los archivos presentes."
+
+      # ----------------------------------------------------------
+      # 6. Verify imports
+      # ----------------------------------------------------------
+      - name: 🧪 Verify imports
+        run: |
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from data_engine import DataEngine
+          from signal_engine import Signal
+          from config import DEFAULT_PARAMS, SYMBOLS
+          from ophelia_config import OPHELIA_PATTERNS_FILE
+          from ophelia_engine import PatternExtractor, OpheliaDetector, TemporalPredictor, LeverageCalculator, OpheliaCertifier, OpheliaReportGenerator
+          from ophelia_engine.trade_simulator import simulate_trade_from_signal
+          print(f'✅ Imports OK — {len(SYMBOLS)} símbolos configurados')
+          "
+
+      # ----------------------------------------------------------
+      # 7. RUN OPHELIA PIPELINE
+      # ----------------------------------------------------------
+      - name: 🌟 Run OPHELIA pipeline
+        id: pipeline
+        run: python run_ophelia.py
+        continue-on-error: true
+
+      # ----------------------------------------------------------
+      # 8. Check outputs
+      # ----------------------------------------------------------
+      - name: 📊 Check generated outputs
+        if: always()
+        run: |
+          echo "════════════════════════════════════════════════════════════"
+          echo "  ARCHIVOS GENERADOS"
+          echo "════════════════════════════════════════════════════════════"
+          for f in data/ophelia/learned_patterns.json data/ophelia/all_trades.parquet reports/OPHELIA_CERTIFICATION_REPORT.md reports/OPHELIA_NOT_AVAILABLE.md; do
+            if [ -f "$f" ]; then
+              SIZE=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null || echo "?")
+              echo "✅ $f ($SIZE bytes)"
+            else
+              echo "⚪ $f (no generado)"
+            fi
+          done
+          echo ""
+          echo "════════════════════════════════════════════════════════════"
+          echo "  REPORTE OPHELIA (head)"
+          echo "════════════════════════════════════════════════════════════"
+          if [ -f reports/OPHELIA_CERTIFICATION_REPORT.md ]; then
+            head -60 reports/OPHELIA_CERTIFICATION_REPORT.md
+          elif [ -f reports/OPHELIA_NOT_AVAILABLE.md ]; then
+            cat reports/OPHELIA_NOT_AVAILABLE.md
+          else
+            echo "⚠️ No se generó ningún reporte"
+          fi
+
+      # ----------------------------------------------------------
+      # 9. Check for OPHELIA certification
+      # ----------------------------------------------------------
+      - name: 🔔 Check certification status
+        id: cert_status
+        if: always()
+        run: |
+          if [ -f reports/OPHELIA_CERTIFICATION_REPORT.md ]; then
+            if grep -q "✅ CERTIFICADO" reports/OPHELIA_CERTIFICATION_REPORT.md; then
+              echo "status=CERTIFIED" >> $GITHUB_OUTPUT
+              echo "✅ OPHELIA CERTIFICADO"
+            else
+              echo "status=NOT_CERTIFIED" >> $GITHUB_OUTPUT
+              echo "⚠️ OPHELIA NO CERTIFICADO"
+            fi
+          elif [ -f reports/OPHELIA_NOT_AVAILABLE.md ]; then
+            echo "status=NOT_AVAILABLE" >> $GITHUB_OUTPUT
+            echo "❌ OPHELIA NO DISPONIBLE (muestra insuficiente)"
+          else
+            echo "status=UNKNOWN" >> $GITHUB_OUTPUT
+            echo "⚠️ Estado desconocido"
+          fi
+
+      # ----------------------------------------------------------
+      # 10. Upload pattern (si existe)
+      # ----------------------------------------------------------
+      - name: 📤 Upload OPHELIA pattern
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ophelia-pattern-${{ github.run_number }}
+          path: |
+            data/ophelia/learned_patterns.json
+            data/ophelia/all_trades.parquet
+          retention-days: 90
+          if-no-files-found: warn
+
+      # ----------------------------------------------------------
+      # 11. Upload reports
+      # ----------------------------------------------------------
+      - name: 📤 Upload OPHELIA reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ophelia-reports-${{ github.run_number }}
+          path: |
+            reports/
+            data/ophelia/
+          retention-days: 90
+          if-no-files-found: warn
+
+      # ----------------------------------------------------------
+      # 12. Upload trades data
+      # ----------------------------------------------------------
+      - name: 📤 Upload trades data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ophelia-trades-${{ github.run_number }}
+          path: |
+            data/trades/
+          retention-days: 30
+          if-no-files-found: warn
+
+      # ----------------------------------------------------------
+      # 13. Job summary
+      # ----------------------------------------------------------
+      - name: 📋 Job Summary
+        if: always()
+        run: |
+          STATUS="${{ steps.cert_status.outputs.status }}"
+          echo "## 🌟 OPHELIA Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Run | #${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | **$STATUS** |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered by | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f data/ophelia/learned_patterns.json ]; then
+            N_TRAIN=$(python -c "import json; print(json.load(open('data/ophelia/learned_patterns.json'))['n_train'])" 2>/dev/null || echo "?")
+            N_ASSETS=$(python -c "import json; print(len(json.load(open('data/ophelia/learned_patterns.json'))['assets']))" 2>/dev/null || echo "?")
+            echo "| Trades OPHELIA | $N_TRAIN |" >> $GITHUB_STEP_SUMMARY
+            echo "| Activos | $N_ASSETS |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📁 Artifacts generados" >> $GITHUB_STEP_SUMMARY
+          echo "- \`ophelia-pattern-${{ github.run_number }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`ophelia-reports-${{ github.run_number }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`ophelia-trades-${{ github.run_number }}\`" >> $GITHUB_STEP_SUMMARY

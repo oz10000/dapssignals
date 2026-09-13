@@ -4,13 +4,14 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime
 from pathlib import Path
-import os
+import json
 
 from data_engine import DataEngine
 from config import (INITIAL_CAPITAL, DEFAULT_PARAMS, VERSION,
                     PROJECT_NAME, TIMEFRAME, SYMBOLS)
 from signal_engine import Signal, rank_signals, classify_by_tier
 from ophelia_lab.report_generator import ReportGenerator
+from ophelia_lab.operational_report import OperationalReport
 
 st.set_page_config(page_title=f"{PROJECT_NAME}", page_icon="🌟", layout="wide")
 
@@ -41,15 +42,23 @@ with st.sidebar:
         st.session_state.force_scan = True
 
     if st.button("📊 Generar Reporte TXT", use_container_width=True):
-        with st.spinner("Generando reporte..."):
+        with st.spinner("Generando..."):
             try:
                 path = ReportGenerator.generate_txt('reports/full_report.txt')
-                st.success(f"✅ Reporte creado en {path}")
+                st.success(f"✅ {path}")
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+    if st.button("📋 Generar Reporte Operativo", use_container_width=True):
+        with st.spinner("Generando..."):
+            try:
+                path = OperationalReport().generate()
+                st.success(f"✅ {path}")
             except Exception as e:
                 st.error(f"Error: {e}")
 
     st.markdown("---")
-    st.caption("📁 Archivos generados se guardan en `reports/`")
+    st.caption("📁 Archivos se guardan en `reports/`")
 
 # ============================================================
 # INICIALIZACIÓN
@@ -70,11 +79,14 @@ if st.session_state.get('force_scan') or st.session_state.last_scan is None:
         data_dict = {}
         progress = st.progress(0)
         for i, sym in enumerate(SYMBOLS):
-            df = de.fetch_ohlcv(sym, limit=300)
-            if df is not None and not df.empty:
-                data_dict[sym] = df
-                s = Signal(sym, df, DEFAULT_PARAMS)
-                signals.append(s.to_dict())
+            try:
+                df = de.fetch_ohlcv(sym, limit=300)
+                if df is not None and not df.empty:
+                    data_dict[sym] = df
+                    s = Signal(sym, df, DEFAULT_PARAMS)
+                    signals.append(s.to_dict())
+            except Exception:
+                pass
             progress.progress((i + 1) / len(SYMBOLS))
 
         st.session_state.data_dict = data_dict
@@ -88,7 +100,11 @@ classified = classify_by_tier(ranked)
 # ============================================================
 # PESTAÑAS
 # ============================================================
-tab1, tab2, tab3 = st.tabs(["📈 Señales en Vivo", "🧪 Backtest & Métricas", "📄 Reportes y Descargas"])
+tab1, tab2, tab3 = st.tabs([
+    "📈 Señales en Vivo",
+    "🧪 Backtest & Métricas",
+    "📄 Reportes y Descargas",
+])
 
 # ============================================================
 # TAB 1 — SEÑALES EN VIVO
@@ -105,11 +121,12 @@ with tab1:
     st.subheader("🏆 Ranking por Calidad")
     if ranked:
         df = pd.DataFrame(ranked)
-        display = df[['rank_label', 'symbol', 'tier', 'direction', 'score',
-                      'adx', 'ker', 'regime', 'confidence',
-                      'entry_price', 'sl_price', 'tp_price',
-                      'tp_percent', 'sl_percent', 'estimated_time_to_trade']]
-        st.dataframe(display, use_container_width=True, height=500)
+        display_cols = ['rank_label', 'symbol', 'tier', 'direction', 'score',
+                        'adx', 'ker', 'regime', 'confidence',
+                        'entry_price', 'sl_price', 'tp_price',
+                        'tp_percent', 'sl_percent', 'estimated_time_to_trade']
+        available = [c for c in display_cols if c in df.columns]
+        st.dataframe(df[available], use_container_width=True, height=500)
     else:
         st.info("Presiona 'Escanear Mercado'")
 
@@ -137,7 +154,8 @@ with tab1:
         with st.expander(f"{color} {tier_label} — {len(classified[tier_key])} señales"):
             if classified[tier_key]:
                 df_t = pd.DataFrame(classified[tier_key])
-                st.dataframe(df_t[['symbol', 'direction', 'score', 'adx', 'ker', 'regime', 'confidence']])
+                cols = [c for c in ['symbol', 'direction', 'score', 'adx', 'ker', 'regime', 'confidence'] if c in df_t.columns]
+                st.dataframe(df_t[cols])
             else:
                 st.caption("Sin señales")
 
@@ -146,22 +164,20 @@ with tab1:
 # ============================================================
 with tab2:
     st.header("🧪 Backtest & Métricas Validadas")
-    st.caption("Estos datos provienen de `run_lab.py` (backtest realista con comisión + slippage).")
+    st.caption("Datos generados por `run_lab.py` (backtest realista con comisión + slippage).")
 
-    # Backtest metrics
     bt_path = Path('data/optimization/backtest_metrics.json')
     if bt_path.exists():
-        import json
-        bt = json.loads(bt_path.read_text())
+        bt = json.loads(bt_path.read_text(encoding='utf-8'))
 
         if bt.get('status') == 'VALIDATED':
             st.success(f"✅ Backtest validado — {bt.get('n_trades', 0)} trades")
 
             cols = st.columns(4)
-            cols[0].metric("Win Rate", f"{bt.get('win_rate', 0):.2%}")
-            cols[1].metric("Profit Factor", f"{bt.get('profit_factor', 0):.3f}")
-            cols[2].metric("Sharpe", f"{bt.get('sharpe', 0):.3f}")
-            cols[3].metric("Max DD", f"{bt.get('max_drawdown_pct', 0):.2f}%")
+            cols[0].metric("Win Rate", f"{bt.get('win_rate', 0):.4f}")
+            cols[1].metric("Profit Factor", f"{bt.get('profit_factor', 0):.4f}")
+            cols[2].metric("Sharpe", f"{bt.get('sharpe', 0):.4f}")
+            cols[3].metric("Max DD", f"{bt.get('max_drawdown_pct', 0):.4f}%")
 
             cols = st.columns(3)
             cols[0].metric("Expectancy", f"{bt.get('expectancy_pct', 0):.4f}%")
@@ -171,18 +187,17 @@ with tab2:
             if 'by_tier' in bt and bt['by_tier']:
                 st.subheader("📊 Desglose por Tier")
                 tier_df = pd.DataFrame([
-                    {'Tier': k, 'N': v['n'], 'WR': f"{v['wr']:.2%}", 'Avg PnL': f"{v['avg_pnl']:.4f}%"}
+                    {'Tier': k, 'N': v['n'], 'WR': f"{v['wr']:.4f}", 'Avg PnL': f"{v['avg_pnl']:.4f}%"}
                     for k, v in bt['by_tier'].items()
                 ])
                 st.dataframe(tier_df, use_container_width=True)
         else:
             st.warning("⚠️ Backtest no validado. Ejecutá `python run_lab.py`")
     else:
-        st.info("❌ No hay métricas de backtest. Ejecutá `python run_lab.py` primero.")
+        st.info("❌ No hay métricas. Ejecutá `python run_lab.py` primero.")
 
     st.markdown("---")
 
-    # Trades
     trades_path = Path('data/trades/trades.parquet')
     if trades_path.exists():
         trades = pd.read_parquet(trades_path)
@@ -192,22 +207,23 @@ with tab2:
         if 'net_pnl_pct' in trades.columns and len(trades) > 0:
             equity = INITIAL_CAPITAL * (1 + trades['net_pnl_pct']).cumprod()
             fig = go.Figure()
-            fig.add_trace(go.Scatter(y=equity, mode='lines', name='Equity', line=dict(color='green')))
-            fig.update_layout(title="Curva de Equity", xaxis_title="Trade #", yaxis_title="Capital ($)")
+            fig.add_trace(go.Scatter(y=equity, mode='lines', name='Equity',
+                                     line=dict(color='green')))
+            fig.update_layout(title="Curva de Equity",
+                              xaxis_title="Trade #",
+                              yaxis_title="Capital ($)")
             st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("❌ No hay trades. Ejecutá `python run_lab.py`")
 
     st.markdown("---")
 
-    # Monte Carlo
     mc_path = Path('data/optimization/monte_carlo.json')
     if mc_path.exists():
-        import json
-        mc = json.loads(mc_path.read_text())
+        mc = json.loads(mc_path.read_text(encoding='utf-8'))
         st.subheader("🎲 Monte Carlo")
         cols = st.columns(4)
-        cols[0].metric("Ruin Prob", f"{mc.get('ruin_probability', 0):.2%}")
+        cols[0].metric("Ruin Prob", f"{mc.get('ruin_probability', 0):.4f}")
         cols[1].metric("Mean Final", f"${mc.get('mean_final', 0):,.0f}")
         cols[2].metric("P5 Final", f"${mc.get('p5_final', 0):,.0f}")
         cols[3].metric("P95 Final", f"${mc.get('p95_final', 0):,.0f}")
@@ -217,46 +233,82 @@ with tab2:
 # ============================================================
 with tab3:
     st.header("📄 Reportes y Descargas")
-    st.caption("Descargá el reporte completo en TXT para revisar todas las métricas.")
+    st.caption("Descargá los reportes completos con todas las métricas reales.")
 
-    # Botón generar
-    if st.button("🔄 Regenerar Reporte TXT", type="primary"):
-        with st.spinner("Generando..."):
-            try:
-                path = ReportGenerator.generate_txt('reports/full_report.txt')
-                st.success(f"✅ Generado: {path}")
-            except Exception as e:
-                st.error(f"Error: {e}")
+    # Botones de generación
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("🔄 Regenerar full_report.txt", use_container_width=True):
+            with st.spinner("Generando..."):
+                try:
+                    path = ReportGenerator.generate_txt('reports/full_report.txt')
+                    st.success(f"✅ {path}")
+                except Exception as e:
+                    st.error(f"Error: {e}")
+    with col_b:
+        if st.button("🔄 Regenerar OPHELIA_OPERATIONAL_REPORT.md", use_container_width=True):
+            with st.spinner("Generando..."):
+                try:
+                    path = OperationalReport().generate()
+                    st.success(f"✅ {path}")
+                except Exception as e:
+                    st.error(f"Error: {e}")
 
     st.markdown("---")
 
-    # Descargas disponibles
-    report_path = Path('reports/full_report.txt')
-    if report_path.exists():
-        st.subheader("📥 Descargar Reporte Completo")
-        content = report_path.read_text(encoding='utf-8')
+    # Descarga: full_report.txt
+    report_txt = Path('reports/full_report.txt')
+    if report_txt.exists():
+        st.subheader("📥 Descargar Reporte Completo (TXT)")
+        content = report_txt.read_text(encoding='utf-8')
         st.download_button(
             label="📥 Descargar full_report.txt",
             data=content,
             file_name=f"daps_ophelia_report_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
             mime="text/plain",
-            use_container_width=True
+            use_container_width=True,
         )
-        with st.expander("👁️ Vista previa del reporte"):
+        with st.expander("👁️ Vista previa"):
             st.code(content[:3000], language='text')
     else:
-        st.warning("⚠️ No existe `reports/full_report.txt`. Presioná 'Regenerar Reporte TXT'.")
+        st.warning("⚠️ No existe `reports/full_report.txt`. Presioná 'Regenerar'.")
 
     st.markdown("---")
 
-    # Otros reportes
-    st.subheader("📁 Otros archivos generados")
-    for f in ['reports/CERTIFICATION_REPORT.md', 'reports/MONTE_CARLO_REPORT.md',
-              'data/optimization/backtest_metrics.json',
-              'data/optimization/walk_forward.json',
-              'data/optimization/trailing_optimal.csv',
-              'data/optimization/break_even_optimal.csv',
-              'data/optimization/leverage_optimal.csv']:
+    # Descarga: OPHELIA_OPERATIONAL_REPORT.md
+    op_report = Path('reports/OPHELIA_OPERATIONAL_REPORT.md')
+    if op_report.exists():
+        st.subheader("📋 Descargar Reporte Operativo (MD)")
+        content = op_report.read_text(encoding='utf-8')
+        st.download_button(
+            label="📥 Descargar OPHELIA_OPERATIONAL_REPORT.md",
+            data=content,
+            file_name=f"ophelia_operational_{datetime.now().strftime('%Y%m%d_%H%M')}.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
+        with st.expander("👁️ Vista previa"):
+            st.markdown(content[:3000])
+    else:
+        st.warning("⚠️ No existe `reports/OPHELIA_OPERATIONAL_REPORT.md`. Presioná 'Regenerar'.")
+
+    st.markdown("---")
+
+    # Estado de archivos
+    st.subheader("📁 Estado de archivos generados")
+    files_status = [
+        'reports/full_report.txt',
+        'reports/OPHELIA_OPERATIONAL_REPORT.md',
+        'reports/CERTIFICATION_REPORT.md',
+        'reports/MONTE_CARLO_REPORT.md',
+        'data/optimization/backtest_metrics.json',
+        'data/optimization/walk_forward.json',
+        'data/optimization/trailing_optimal.csv',
+        'data/optimization/break_even_optimal.csv',
+        'data/optimization/leverage_optimal.csv',
+        'data/trades/trades.parquet',
+    ]
+    for f in files_status:
         p = Path(f)
         status = "✅" if p.exists() else "❌"
         size = f"{p.stat().st_size} bytes" if p.exists() else "no existe"

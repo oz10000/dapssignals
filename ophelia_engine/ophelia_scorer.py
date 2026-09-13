@@ -34,8 +34,11 @@ class OpheliaScorer:
             return {'error': 'Sin datos'}
 
         available_features = [f for f in MODEL_FEATURES if f in trades_df.columns]
-        if len(available_features) < 5:
-            return {'error': f'Solo {len(available_features)} features'}
+
+        # FIX: permitir 3 features (antes pedía 5)
+        MIN_FEATURES = 3
+        if len(available_features) < MIN_FEATURES:
+            return {'error': f'Solo {len(available_features)} features (mínimo {MIN_FEATURES})'}
 
         df = trades_df.sort_values('entry_time').reset_index(drop=True)
         split_idx = int(len(df) * (1 - MODEL_TEST_SIZE))
@@ -51,7 +54,9 @@ class OpheliaScorer:
         X_train, y_train = X_train[train_mask], y_train[train_mask]
         X_test, y_test = X_test[test_mask], y_test[test_mask]
 
-        if len(X_train) < 30 or len(X_test) < 10:
+        MIN_TRAIN = 20
+        MIN_TEST = 10
+        if len(X_train) < MIN_TRAIN or len(X_test) < MIN_TEST:
             return {'error': f'Muestra: train={len(X_train)}, test={len(X_test)}'}
 
         self.scaler = StandardScaler()
@@ -124,7 +129,7 @@ class OpheliaScorer:
         for τ in threshold_grid:
             train_sel = self._apply_daily_limit(train, τ, max_per_day)
             test_sel = self._apply_daily_limit(test, τ, max_per_day)
-            if len(train_sel) < 3 or len(test_sel) < 2:
+            if len(train_sel) < 2 or len(test_sel) < 2:
                 continue
             results.append({
                 'threshold': τ,

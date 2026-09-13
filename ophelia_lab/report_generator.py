@@ -3,21 +3,28 @@
 Generador de reportes en TXT y MD.
 Crea:
   - reports/full_report.txt          (para descargar desde Streamlit)
-  - reports/CERTIFICATION_REPORT.md  (certificación)
 """
 import json
 import pandas as pd
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 
 class ReportGenerator:
+    """
+    Generador de reportes en texto plano para descarga desde Streamlit.
+    """
 
     @staticmethod
     def _load_json(path: str) -> Optional[dict]:
         p = Path(path)
-        return json.loads(p.read_text()) if p.exists() else None
+        if not p.exists():
+            return None
+        try:
+            return json.loads(p.read_text(encoding='utf-8'))
+        except Exception:
+            return None
 
     @staticmethod
     def _load_df(path: str) -> Optional[pd.DataFrame]:
@@ -39,26 +46,28 @@ class ReportGenerator:
     def generate_txt(cls, output: str = 'reports/full_report.txt') -> str:
         """
         Genera un reporte completo en TXT con TODAS las métricas disponibles.
-        Este archivo es el que descarga Streamlit.
+        Este es el archivo que descarga Streamlit.
         """
         lines = []
         lines.append("=" * 70)
         lines.append("  DAPS Ω × OPHELIA RESEARCH LAB — FULL REPORT")
-        lines.append(f"  Generado: {datetime.utcnow().isoformat()} UTC")
+        lines.append(f"  Generado: {datetime.now(timezone.utc).isoformat()} UTC")
         lines.append("=" * 70)
         lines.append("")
 
-        # 1. Backtest
+        # ─────────────────────────────────────────────────────────
+        # 1. BACKTEST
+        # ─────────────────────────────────────────────────────────
         bt = cls._load_json('data/optimization/backtest_metrics.json')
         lines.append("─" * 70)
         lines.append(" 1. BACKTEST METRICS")
         lines.append("─" * 70)
         if bt and bt.get('status') == 'VALIDATED':
             lines.append(f"  N° trades          : {bt.get('n_trades', 'N/A')}")
-            lines.append(f"  Win rate           : {bt.get('win_rate', 0):.2%}")
-            lines.append(f"  Profit factor      : {bt.get('profit_factor', 0):.3f}")
-            lines.append(f"  Sharpe             : {bt.get('sharpe', 0):.3f}")
-            lines.append(f"  Max drawdown       : {bt.get('max_drawdown_pct', 0):.2f}%")
+            lines.append(f"  Win rate           : {bt.get('win_rate', 0):.4f}")
+            lines.append(f"  Profit factor      : {bt.get('profit_factor', 0):.4f}")
+            lines.append(f"  Sharpe             : {bt.get('sharpe', 0):.4f}")
+            lines.append(f"  Max drawdown       : {bt.get('max_drawdown_pct', 0):.4f}%")
             lines.append(f"  Expectancy         : {bt.get('expectancy_pct', 0):.4f}%")
             lines.append(f"  Avg win            : {bt.get('avg_win_pct', 0):.4f}%")
             lines.append(f"  Avg loss           : {bt.get('avg_loss_pct', 0):.4f}%")
@@ -67,14 +76,18 @@ class ReportGenerator:
 
             if 'by_tier' in bt and bt['by_tier']:
                 lines.append("  ── Desglose por Tier ──")
-                lines.append(f"  {'Tier':<12} {'N':>6} {'WR':>8} {'AvgPnL':>10}")
+                lines.append(f"  {'Tier':<12} {'N':>6} {'WR':>10} {'AvgPnL':>12}")
                 for tier, m in bt['by_tier'].items():
-                    lines.append(f"  {tier:<12} {m['n']:>6} {m['wr']:>7.2%} {m['avg_pnl']:>9.4f}%")
+                    lines.append(
+                        f"  {tier:<12} {m['n']:>6} {m['wr']:>9.4f} {m['avg_pnl']:>11.4f}%"
+                    )
         else:
             lines.append("  ❌ NO VALIDADO — ejecutar 'python run_lab.py' primero")
         lines.append("")
 
-        # 2. Walk-Forward
+        # ─────────────────────────────────────────────────────────
+        # 2. WALK-FORWARD
+        # ─────────────────────────────────────────────────────────
         wf = cls._load_df('data/optimization/walk_forward.json')
         lines.append("─" * 70)
         lines.append(" 2. WALK-FORWARD VALIDATION")
@@ -85,7 +98,9 @@ class ReportGenerator:
             lines.append("  ❌ NO VALIDADO")
         lines.append("")
 
-        # 3. Monte Carlo
+        # ─────────────────────────────────────────────────────────
+        # 3. MONTE CARLO
+        # ─────────────────────────────────────────────────────────
         mc = cls._load_json('data/optimization/monte_carlo.json')
         lines.append("─" * 70)
         lines.append(" 3. MONTE CARLO (10,000 simulaciones)")
@@ -99,7 +114,9 @@ class ReportGenerator:
             lines.append("  ❌ NO VALIDADO")
         lines.append("")
 
-        # 4. Trailing óptimo
+        # ─────────────────────────────────────────────────────────
+        # 4. TRAILING ÓPTIMO
+        # ─────────────────────────────────────────────────────────
         trail = cls._load_df('data/optimization/trailing_optimal.csv')
         lines.append("─" * 70)
         lines.append(" 4. TRAILING ÓPTIMO POR ACTIVO")
@@ -110,7 +127,9 @@ class ReportGenerator:
             lines.append("  ❌ NO VALIDADO")
         lines.append("")
 
-        # 5. Break Even óptimo
+        # ─────────────────────────────────────────────────────────
+        # 5. BREAK EVEN ÓPTIMO
+        # ─────────────────────────────────────────────────────────
         be = cls._load_df('data/optimization/break_even_optimal.csv')
         lines.append("─" * 70)
         lines.append(" 5. BREAK EVEN ÓPTIMO POR ACTIVO")
@@ -121,7 +140,9 @@ class ReportGenerator:
             lines.append("  ❌ NO VALIDADO")
         lines.append("")
 
-        # 6. Leverage óptimo
+        # ─────────────────────────────────────────────────────────
+        # 6. LEVERAGE ÓPTIMO
+        # ─────────────────────────────────────────────────────────
         lev = cls._load_df('data/optimization/leverage_optimal.csv')
         lines.append("─" * 70)
         lines.append(" 6. LEVERAGE ÓPTIMO POR ACTIVO")
@@ -132,7 +153,9 @@ class ReportGenerator:
             lines.append("  ❌ NO VALIDADO")
         lines.append("")
 
-        # 7. Optimization history
+        # ─────────────────────────────────────────────────────────
+        # 7. HISTORIAL DE OPTIMIZACIÓN
+        # ─────────────────────────────────────────────────────────
         opt = cls._load_json('data/optimization/optimization_history.json')
         lines.append("─" * 70)
         lines.append(" 7. HISTORIAL DE OPTIMIZACIÓN")
@@ -140,10 +163,12 @@ class ReportGenerator:
         if opt:
             for h in opt:
                 m = h.get('metrics', {})
+                wr = m.get('win_rate', 0) or 0
+                pf = m.get('profit_factor', 0) or 0
+                sh = m.get('sharpe', 0) or 0
                 lines.append(
                     f"  Iter {h.get('iteration')} [{h.get('stage', '')}]: "
-                    f"WR={m.get('win_rate', 0):.3f} PF={m.get('profit_factor', 0):.3f} "
-                    f"Sharpe={m.get('sharpe', 0):.3f}"
+                    f"WR={wr:.4f} PF={pf:.4f} Sharpe={sh:.4f}"
                 )
         else:
             lines.append("  ❌ NO VALIDADO")
@@ -159,6 +184,5 @@ class ReportGenerator:
 
     @classmethod
     def generate_all(cls):
-        """Genera todos los reportes disponibles."""
+        """Genera todos los reportes de texto disponibles."""
         cls.generate_txt('reports/full_report.txt')
-        # El resto los genera Certifier

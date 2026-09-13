@@ -1,19 +1,26 @@
+# .github/workflows/daily_research.yml
+# Ejecuta el pipeline completo (run_lab.py) cada día a las 06:00 UTC
+# Genera reportes y los publica como artifacts descargables.
+
 name: Daily Research
 
 on:
   schedule:
-    - cron: "0 6 * * *"   # 06:00 UTC = 03:00 ARG
-  workflow_dispatch:
+    - cron: "0 6 * * *"      # 06:00 UTC = 03:00 ARG
+  workflow_dispatch:          # Permite ejecución manual desde GitHub UI
 
 jobs:
   research:
+    name: Run Ophelia Research Pipeline
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -23,29 +30,40 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Create directories
+      - name: Create data directories
         run: |
           mkdir -p data/raw data/trades data/optimization data/certifications reports
 
-      - name: Run full pipeline
+      - name: Run diagnostic (optional, non-blocking)
+        run: python diagnose.py || echo "⚠️ Diagnostic falló pero continuamos"
+
+      - name: Execute full pipeline
         run: python run_lab.py
         continue-on-error: true
 
       - name: Show report summary
+        if: always()
         run: |
-          echo "=== CERTIFICATION REPORT ==="
-          cat reports/CERTIFICATION_REPORT.md 2>/dev/null || echo "No report generated"
+          echo "════════════════════════════════════════════════════════════"
+          echo "  ARCHIVOS GENERADOS"
+          echo "════════════════════════════════════════════════════════════"
+          ls -la reports/ 2>/dev/null || echo "No reports dir"
+          ls -la data/trades/ 2>/dev/null || echo "No trades dir"
+          ls -la data/optimization/ 2>/dev/null || echo "No optimization dir"
           echo ""
-          echo "=== FULL REPORT (head) ==="
-          head -80 reports/full_report.txt 2>/dev/null || echo "No full report"
+          echo "════════════════════════════════════════════════════════════"
+          echo "  HEAD DEL REPORTE OPERATIVO"
+          echo "════════════════════════════════════════════════════════════"
+          head -60 reports/OPHELIA_OPERATIONAL_REPORT.md 2>/dev/null || echo "No operational report"
 
-      - name: Upload artifacts
+      - name: Upload all artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: research-results-${{ github.run_number }}
+          name: ophelia-research-${{ github.run_number }}
           path: |
             reports/
             data/optimization/
             data/trades/
           retention-days: 30
+          if-no-files-found: warn

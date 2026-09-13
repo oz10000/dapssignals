@@ -1,34 +1,64 @@
+# .github/workflows/weekly_optimization.yml
+# Ejecuta optimización extendida cada lunes a las 04:00 UTC.
+# Retención de artifacts: 90 días.
+
 name: Weekly Optimization
 
 on:
   schedule:
-    - cron: "0 4 * * 1"   # Lunes 04:00 UTC
+    - cron: "0 4 * * 1"      # Lunes 04:00 UTC
   workflow_dispatch:
 
 jobs:
   optimize:
+    name: Extended Optimization
     runs-on: ubuntu-latest
     timeout-minutes: 240
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      - run: pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create directories
+        run: |
+          mkdir -p data/raw data/trades data/optimization data/certifications reports
 
       - name: Run optimization pipeline
         run: python run_lab.py
         continue-on-error: true
 
-      - name: Upload artifacts
+      - name: Generate extended summary
+        if: always()
+        run: |
+          echo "════════════════════════════════════════════════════════════"
+          echo "  WEEKLY OPTIMIZATION SUMMARY"
+          echo "════════════════════════════════════════════════════════════"
+          echo ""
+          echo "── Backtest Metrics ──"
+          cat data/optimization/backtest_metrics.json 2>/dev/null || echo "❌ No backtest"
+          echo ""
+          echo "── Optimization History ──"
+          cat data/optimization/optimization_history.json 2>/dev/null | head -100 || echo "❌ No history"
+
+      - name: Upload optimization results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: optimization-results-${{ github.run_number }}
+          name: ophelia-optimization-${{ github.run_number }}
           path: |
             reports/
             data/optimization/
+            data/trades/
           retention-days: 90
+          if-no-files-found: warn

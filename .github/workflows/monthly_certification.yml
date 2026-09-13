@@ -1,17 +1,30 @@
-# .github/workflows/monthly_certification.yml
-# Ejecuta certificación completa el día 1 de cada mes a las 03:00 UTC.
-# Retención de artifacts: 365 días.
+# .github/workflows/manual_run.yml
+# Permite ejecutar el pipeline completo manualmente desde GitHub UI
+# con opciones configurables.
 
-name: Monthly Certification
+name: Manual Pipeline Run
 
 on:
-  schedule:
-    - cron: "0 3 1 * *"      # Día 1 del mes, 03:00 UTC
   workflow_dispatch:
+    inputs:
+      task:
+        description: 'Tarea a ejecutar'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - full           # Pipeline completo
+          - backtest       # Solo backtest
+          - diagnostic     # Solo diagnóstico
+      symbols_limit:
+        description: 'Limitar a N activos (0 = todos)'
+        required: false
+        default: '0'
+        type: string
 
 jobs:
-  certify:
-    name: Full Certification
+  manual:
+    name: Manual ${{ github.event.inputs.task }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
 
@@ -34,45 +47,59 @@ jobs:
         run: |
           mkdir -p data/raw data/trades data/optimization data/certifications reports
 
-      - name: Run certification pipeline
+      - name: Run diagnostic
+        if: github.event.inputs.task == 'diagnostic'
+        run: python diagnose.py
+
+      - name: Run backtest only
+        if: github.event.inputs.task == 'backtest'
+        run: |
+          python -c "
+          from data_engine import DataEngine
+          from signal_engine import Signal
+          from ophelia_lab.backtest_engine import BacktestEngine
+          from config import SYMBOLS, DEFAULT_PARAMS
+          import json
+          from pathlib import Path
+          
+          limit = int('${{ github.event.inputs.symbols_limit }}') or len(SYMBOLS)
+          de = DataEngine()
+          data = {}
+          for sym in SYMBOLS[:limit]:
+              df = de.fetch_ohlcv(sym, limit=500)
+              if df is not None and not df.empty:
+                  data[sym] = df
+          print(f'Descargados {len(data)} activos')
+          
+          def sig_fn(s, df):
+              return Signal(s, df, DEFAULT_PARAMS).to_dict()
+          
+          bt = BacktestEngine()
+          trades = bt.run(data, sig_fn)
+          metrics = bt.compute_metrics()
+          
+          Path('data/optimization').mkdir(parents=True, exist_ok=True)
+          Path('data/optimization/backtest_metrics.json').write_text(
+              json.dumps(metrics, default=str, indent=2)
+          )
+          if not trades.empty:
+              Path('data/trades').mkdir(parents=True, exist_ok=True)
+              trades.to_parquet('data/trades/trades.parquet')
+          print(json.dumps(metrics, default=str, indent=2))
+          "
+
+      - name: Run full pipeline
+        if: github.event.inputs.task == 'full'
         run: python run_lab.py
         continue-on-error: true
 
-      - name: Display certification
-        if: always()
-        run: |
-          echo "════════════════════════════════════════════════════════════"
-          echo "  CERTIFICATION REPORT"
-          echo "════════════════════════════════════════════════════════════"
-          cat reports/CERTIFICATION_REPORT.md 2>/dev/null || echo "❌ No certification"
-          echo ""
-          echo "════════════════════════════════════════════════════════════"
-          echo "  OPERATIONAL REPORT"
-          echo "════════════════════════════════════════════════════════════"
-          cat reports/OPHELIA_OPERATIONAL_REPORT.md 2>/dev/null || echo "❌ No operational"
-
-      - name: Upload certification artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ophelia-certification-${{ github.run_number }}
+          name: manual-run-${{ github.run_number }}
           path: |
             reports/
-            data/certifications/
-            data/optimization/
-          retention-days: 365
+            data/
+          retention-days: 30
           if-no-files-found: warn
-
-      - name: Create GitHub Release (opcional)
-        if: success()
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: "cert-${{ github.run_number }}"
-          name: "Certification ${{ github.run_number }}"
-          body: |
-            Certificación automática mensual.
-            Ver artifacts para detalles completos.
-          files: |
-            reports/CERTIFICATION_REPORT.md
-            reports/OPHELIA_OPERATIONAL_REPORT.md
-        continue-on-error: true

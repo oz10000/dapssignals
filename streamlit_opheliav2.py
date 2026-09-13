@@ -1,10 +1,10 @@
-# streamlit_opheliav2.py
+# streamlit_ophelia.py
 """
 🌟 OPHELIA Precision Engine — Dashboard v3
 - Escaneo live con OPHELIA Score
 - Ranking COMPLETO de TODOS los activos
 - Clasificación OPHELIA / STANDARD / REJECTED
-- TODOS los reportes descargables en formato TXT
+- Todos los reportes descargables en TXT
 """
 import streamlit as st
 import pandas as pd
@@ -43,7 +43,6 @@ try:
     from ophelia_v2_config import (
         OPHELIA_V2_MODEL, OPHELIA_V2_METADATA, OPHELIA_V2_TRADES,
         OPHELIA_V2_DAILY, OPHELIA_V2_REPORT, TIMEZONE_AR,
-        OPHELIA_SCORE_THRESHOLD, STANDARD_SCORE_THRESHOLD,
     )
 except Exception as e:
     IMPORT_ERRORS.append(f"ophelia_v2_config: {e}")
@@ -53,9 +52,8 @@ except Exception as e:
     OPHELIA_V2_DAILY = 'data/ophelia_v2/daily_selection.parquet'
     OPHELIA_V2_REPORT = 'reports/OPHELIA_DAILY_CERTIFICATION_REPORT.md'
     TIMEZONE_AR = 'America/Argentina/Buenos_Aires'
-    OPHELIA_SCORE_THRESHOLD = 0.75
-    STANDARD_SCORE_THRESHOLD = 0.55
 
+# Motores OPHELIA (v3)
 SCORER_AVAILABLE = False
 try:
     from ophelia_engine import (
@@ -66,6 +64,7 @@ try:
 except Exception as e:
     IMPORT_ERRORS.append(f"ophelia_engine: {e}")
 
+# Data + Signal
 DATA_AVAILABLE = False
 try:
     from data_engine import DataEngine
@@ -101,24 +100,6 @@ CSS_STYLE = """
     text-align: center;
     font-weight: 900;
     letter-spacing: 2px;
-}
-.ophelia-table {
-    width: 100%;
-    font-size: 1.1em;
-    border-collapse: collapse;
-    margin-top: 15px;
-}
-.ophelia-table td {
-    padding: 10px 15px;
-    border-bottom: 1px solid rgba(0,0,0,0.15);
-}
-.ophelia-table td:first-child {
-    font-weight: 600;
-    width: 45%;
-}
-.ophelia-table td:last-child {
-    font-family: monospace;
-    font-weight: 700;
 }
 .no-ophelia {
     background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 100%);
@@ -181,20 +162,6 @@ def format_price(value):
         return str(value)
 
 
-def format_duration(minutes):
-    if minutes is None:
-        return "N/A"
-    try:
-        m = float(minutes)
-        if m < 1:
-            return "< 1 min"
-        if m < 60:
-            return f"{int(m)} min"
-        return f"{int(m // 60)}h {int(m % 60)}min"
-    except Exception:
-        return "N/A"
-
-
 def load_json_safe(path):
     try:
         p = Path(path)
@@ -215,45 +182,6 @@ def load_parquet_safe(path):
         return None
 
 
-def load_pickle_safe(path):
-    try:
-        import pickle
-        p = Path(path)
-        if not p.exists():
-            return None
-        with open(path, 'rb') as f:
-            return pickle.load(f)
-    except Exception:
-        return None
-
-
-def df_to_txt_report(df, title="RANKING"):
-    """Convierte un DataFrame a texto tabular legible."""
-    lines = []
-    lines.append("=" * 100)
-    lines.append(f"  {title}")
-    lines.append("=" * 100)
-    lines.append("")
-    if df is None or df.empty:
-        lines.append("  (sin datos)")
-        return '\n'.join(lines)
-
-    # Encabezados
-    cols = list(df.columns)
-    widths = [max(12, len(str(c))) for c in cols]
-
-    header = "  ".join(str(c).ljust(w) for c, w in zip(cols, widths))
-    lines.append(header)
-    lines.append("-" * len(header))
-
-    for _, row in df.iterrows():
-        line = "  ".join(str(row[c])[:w].ljust(w) for c, w in zip(cols, widths))
-        lines.append(line)
-
-    lines.append("")
-    return '\n'.join(lines)
-
-
 # ============================================================
 # HEADER
 # ============================================================
@@ -264,9 +192,10 @@ ar_now = get_ar_time()
 st.markdown(f"**🕐 Hora Argentina:** `{ar_now.strftime('%A, %d/%m/%Y %H:%M:%S')}`")
 
 if IMPORT_ERRORS:
-    with st.expander(f"⚠️ {len(IMPORT_ERRORS)} módulos no cargados"):
+    with st.expander(f"⚠️ {len(IMPORT_ERRORS)} módulos no cargados (ver detalle)"):
         for err in IMPORT_ERRORS:
             st.caption(f"• `{err}`")
+        st.caption("La app funciona en modo 'solo lectura' de archivos.")
 
 st.markdown("---")
 
@@ -502,7 +431,6 @@ with tab_live:
 
             st.markdown("---")
 
-            # OPHELIA alerts
             if n_ophelia > 0:
                 st.markdown("### 🌟 OPHELIA DETECTADO(S)")
                 ophelia_alerts = scan_results[scan_results['tier'] == 'OPHELIA']
@@ -548,7 +476,6 @@ with tab_live:
                 st.markdown("**Precisión > Frecuencia**")
                 st.markdown('</div>', unsafe_allow_html=True)
 
-            # STANDARD
             if n_standard > 0:
                 st.markdown("---")
                 st.markdown("### 💠 STANDARD (menor edge)")
@@ -590,15 +517,14 @@ with tab_ranking:
     else:
         st.caption(f"Fuente: {source} · Total: {len(ranking_df)} activos")
 
-        if 'tier' not in ranking_df.columns:
-            if SCORER_AVAILABLE:
-                try:
-                    scorer = OpheliaScorer()
-                    scorer.load(OPHELIA_V2_MODEL)
-                    ranking_df['ophelia_score'] = scorer.score(ranking_df)
-                    ranking_df['tier'] = ranking_df['ophelia_score'].apply(scorer.classify)
-                except Exception:
-                    ranking_df['tier'] = 'REJECTED'
+        if 'tier' not in ranking_df.columns and SCORER_AVAILABLE:
+            try:
+                scorer = OpheliaScorer()
+                scorer.load(OPHELIA_V2_MODEL)
+                ranking_df['ophelia_score'] = scorer.score(ranking_df)
+                ranking_df['tier'] = ranking_df['ophelia_score'].apply(scorer.classify)
+            except Exception:
+                ranking_df['tier'] = 'REJECTED'
 
         # LONG
         st.markdown("### 🟢 Ranking LONG")
@@ -658,54 +584,50 @@ with tab_ranking:
         st.markdown("---")
         st.markdown("### 📥 Descargar Ranking (TXT)")
 
-        txt_content = []
-        txt_content.append("=" * 100)
-        txt_content.append("  OPHELIA PRECISION ENGINE — RANKING COMPLETO")
-        txt_content.append(f"  Generado: {get_ar_time().isoformat()}")
-        txt_content.append(f"  Fuente: {source}")
-        txt_content.append(f"  Total activos: {len(ranking_df)}")
-        txt_content.append("=" * 100)
-        txt_content.append("")
+        txt_lines = []
+        txt_lines.append("=" * 100)
+        txt_lines.append("  OPHELIA PRECISION ENGINE — RANKING COMPLETO")
+        txt_lines.append(f"  Generado: {get_ar_time().isoformat()}")
+        txt_lines.append(f"  Fuente: {source}")
+        txt_lines.append(f"  Total activos: {len(ranking_df)}")
+        txt_lines.append("=" * 100)
+        txt_lines.append("")
 
-        # LONG
-        txt_content.append("=" * 100)
-        txt_content.append("  RANKING LONG")
-        txt_content.append("=" * 100)
+        txt_lines.append("=" * 100)
+        txt_lines.append("  RANKING LONG")
+        txt_lines.append("=" * 100)
         if not longs.empty:
             for i, row in longs.iterrows():
-                txt_content.append(
+                txt_lines.append(
                     f"  #{i+1:<3} {row['symbol']:<15} Score: {row['ophelia_score']:.4f}  "
                     f"Tier: {row['tier']:<12} Tipo: {row.get('movement_type', 'N/A'):<15} "
                     f"Precio: {row['entry_price']:.6f}"
                 )
         else:
-            txt_content.append("  (sin señales LONG)")
-        txt_content.append("")
+            txt_lines.append("  (sin señales LONG)")
+        txt_lines.append("")
 
-        # SHORT
-        txt_content.append("=" * 100)
-        txt_content.append("  RANKING SHORT")
-        txt_content.append("=" * 100)
+        txt_lines.append("=" * 100)
+        txt_lines.append("  RANKING SHORT")
+        txt_lines.append("=" * 100)
         if not shorts.empty:
             for i, row in shorts.iterrows():
-                txt_content.append(
+                txt_lines.append(
                     f"  #{i+1:<3} {row['symbol']:<15} Score: {row['ophelia_score']:.4f}  "
                     f"Tier: {row['tier']:<12} Tipo: {row.get('movement_type', 'N/A'):<15} "
                     f"Precio: {row['entry_price']:.6f}"
                 )
         else:
-            txt_content.append("  (sin señales SHORT)")
-        txt_content.append("")
+            txt_lines.append("  (sin señales SHORT)")
+        txt_lines.append("")
 
-        txt_content.append("=" * 100)
-        txt_content.append("  FIN DEL RANKING")
-        txt_content.append("=" * 100)
-
-        txt_str = '\n'.join(txt_content)
+        txt_lines.append("=" * 100)
+        txt_lines.append("  FIN DEL RANKING")
+        txt_lines.append("=" * 100)
 
         st.download_button(
             "📥 Descargar ranking_completo.txt",
-            data=txt_str,
+            data='\n'.join(txt_lines),
             file_name=f"ophelia_ranking_{get_ar_time().strftime('%Y%m%d_%H%M')}.txt",
             mime="text/plain",
             use_container_width=True,
@@ -751,10 +673,7 @@ with tab_temporal:
                     name='Trades',
                     marker_color='#ff8c00',
                 ))
-                fig.update_layout(
-                    title="Distribución horaria (ARG)",
-                    height=400,
-                )
+                fig.update_layout(title="Distribución horaria (ARG)", height=400)
                 st.plotly_chart(fig, use_container_width=True)
 
             top_hours = temporal.get('top_hours', {})
@@ -775,7 +694,6 @@ with tab_temporal:
                 for a, n in sorted(top_assets.items(), key=lambda x: -x[1])[:10]:
                     st.markdown(f"- **{a}**: {n} trades")
 
-            # Descarga TXT
             st.markdown("---")
             st.markdown("### 📥 Descargar reporte temporal (TXT)")
 
@@ -829,9 +747,9 @@ with tab_trades:
         st.warning("No hay trades. Ejecutá `python run_ophelia_v2.py`.")
     else:
         n = len(trades_df)
-        wr = trades_df['win'].mean()
-        mfe_mean = trades_df['mfe'].mean()
-        mae_mean = trades_df['mae'].mean()
+        wr = trades_df['win'].mean() if 'win' in trades_df.columns else 0
+        mfe_mean = trades_df['mfe'].mean() if 'mfe' in trades_df.columns else 0
+        mae_mean = trades_df['mae'].mean() if 'mae' in trades_df.columns else 0
 
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Total trades", n)
@@ -841,12 +759,13 @@ with tab_trades:
 
         st.markdown("---")
 
-        dir_counts = trades_df['direction'].value_counts()
-        col1, col2 = st.columns(2)
-        with col1:
-            for d, count in dir_counts.items():
-                wr_d = trades_df[trades_df['direction'] == d]['win'].mean()
-                st.metric(f"{d}", f"{count} trades", delta=f"WR {wr_d*100:.1f}%")
+        if 'direction' in trades_df.columns:
+            dir_counts = trades_df['direction'].value_counts()
+            col1, col2 = st.columns(2)
+            with col1:
+                for d, count in dir_counts.items():
+                    wr_d = trades_df[trades_df['direction'] == d]['win'].mean() if 'win' in trades_df.columns else 0
+                    st.metric(f"{d}", f"{count} trades", delta=f"WR {wr_d*100:.1f}%")
 
         st.markdown("---")
 
@@ -854,14 +773,14 @@ with tab_trades:
         with col_a:
             symbols_filter = st.multiselect(
                 "Filtrar por activo",
-                options=sorted(trades_df['symbol'].unique()),
+                options=sorted(trades_df['symbol'].unique()) if 'symbol' in trades_df.columns else [],
                 default=[],
             )
         with col_b:
             show_n = st.slider("Mostrar N", 10, min(500, n), min(50, n))
 
         df_show = trades_df.copy()
-        if symbols_filter:
+        if symbols_filter and 'symbol' in df_show.columns:
             df_show = df_show[df_show['symbol'].isin(symbols_filter)]
 
         if 'entry_time_ar' in df_show.columns:
@@ -933,7 +852,6 @@ with tab_trades:
 with tab_reports:
     st.markdown("## 📄 Reportes en formato TXT")
 
-    # Generar reporte de iteración
     col_a, col_b = st.columns(2)
 
     with col_a:
@@ -948,7 +866,6 @@ with tab_reports:
                         txt_lines.append("=" * 100)
                         txt_lines.append("")
 
-                        # Metadata
                         txt_lines.append("=" * 100)
                         txt_lines.append("  1. METADATA DEL MODELO")
                         txt_lines.append("=" * 100)
@@ -962,7 +879,6 @@ with tab_reports:
                         txt_lines.append(f"  STANDARD WR test:     {metadata.get('standard_wr_test', 0)*100:.2f}%")
                         txt_lines.append("")
 
-                        # Trades
                         txt_lines.append("=" * 100)
                         txt_lines.append("  2. TRADES HISTÓRICOS")
                         txt_lines.append("=" * 100)
@@ -974,7 +890,6 @@ with tab_reports:
                         txt_lines.append(f"  MAE medio:            {trades_df['mae'].mean()*100:.4f}%")
                         txt_lines.append("")
 
-                        # Ranking actual
                         if 'scan_results' in st.session_state and st.session_state.scan_results is not None:
                             df_scan = st.session_state.scan_results
                             txt_lines.append("=" * 100)
@@ -982,9 +897,7 @@ with tab_reports:
                             txt_lines.append("=" * 100)
                             txt_lines.append("")
 
-                            longs = df_scan[df_scan['direction'] == 'LONG'].sort_values(
-                                'ophelia_score', ascending=False
-                            )
+                            longs = df_scan[df_scan['direction'] == 'LONG'].sort_values('ophelia_score', ascending=False)
                             txt_lines.append("  --- LONG ---")
                             for i, (_, row) in enumerate(longs.iterrows(), 1):
                                 txt_lines.append(
@@ -995,9 +908,7 @@ with tab_reports:
                                 )
                             txt_lines.append("")
 
-                            shorts = df_scan[df_scan['direction'] == 'SHORT'].sort_values(
-                                'ophelia_score', ascending=False
-                            )
+                            shorts = df_scan[df_scan['direction'] == 'SHORT'].sort_values('ophelia_score', ascending=False)
                             txt_lines.append("  --- SHORT ---")
                             for i, (_, row) in enumerate(shorts.iterrows(), 1):
                                 txt_lines.append(
@@ -1012,9 +923,8 @@ with tab_reports:
                         txt_lines.append("  FIN DEL REPORTE")
                         txt_lines.append("=" * 100)
 
-                        full_txt = '\n'.join(txt_lines)
                         Path('reports').mkdir(exist_ok=True)
-                        Path('reports/ophelia_iteration_report.txt').write_text(full_txt, encoding='utf-8')
+                        Path('reports/ophelia_iteration_report.txt').write_text('\n'.join(txt_lines), encoding='utf-8')
                         st.success("✅ Reporte generado: reports/ophelia_iteration_report.txt")
                     else:
                         st.warning("No hay trades para generar reporte.")
@@ -1034,12 +944,10 @@ with tab_reports:
                         },
                         'ranking': None,
                     }
-
                     if 'scan_results' in st.session_state and st.session_state.scan_results is not None:
                         json_data['ranking'] = st.session_state.scan_results[
                             ['symbol', 'direction', 'ophelia_score', 'tier', 'entry_price']
                         ].to_dict('records')
-
                     Path('data/ophelia_v2').mkdir(parents=True, exist_ok=True)
                     Path('data/ophelia_v2/iteration_report.json').write_text(
                         json.dumps(json_data, indent=2, default=str), encoding='utf-8'
@@ -1050,7 +958,6 @@ with tab_reports:
 
     st.markdown("---")
 
-    # Descargar reporte de iteración
     iter_txt = Path('reports/ophelia_iteration_report.txt')
     if iter_txt.exists():
         st.markdown("### 📄 Reporte de Iteración (TXT)")
@@ -1064,10 +971,7 @@ with tab_reports:
         )
         with st.expander("👁️ Vista previa"):
             st.code(content[:5000], language='text')
-    else:
-        st.info("El reporte de iteración se genera con el botón de arriba.")
 
-    # Descargar certificación
     if report_text:
         st.markdown("### 📋 Reporte de Certificación")
         st.download_button(
@@ -1079,10 +983,7 @@ with tab_reports:
         )
         with st.expander("👁️ Ver certificación"):
             st.markdown(report_text)
-    else:
-        st.warning("No hay certificación. Ejecutá `python run_ophelia_v2.py`.")
 
-    # Estado de archivos
     st.markdown("---")
     st.markdown("### 📁 Estado de archivos")
     for path, label in [

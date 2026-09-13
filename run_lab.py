@@ -1,43 +1,77 @@
 # run_lab.py
-"""Orquestador: descarga datos, backtest, labs, certificación."""
+"""
+Orquestador completo: datos → backtest → labs → validación → certificación.
+"""
 import logging
+import json
+import sys
 from pathlib import Path
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger('lab')
 
 
-def main():
-    from data_engine import DataEngine
-    from signal_engine import Signal
-    from config import SYMBOLS, DEFAULT_PARAMS
-    from ophelia_lab.backtest_engine import BacktestEngine
-    from ophelia_lab.walk_forward import WalkForward
-    from ophelia_lab.monte_carlo import MonteCarlo
-    from ophelia_lab.trailing_lab import TrailingLab
-    from ophelia_lab.break_even_lab import BreakEvenLab
-    from ophelia_lab.leverage_lab import LeverageLab
-    from ophelia_lab.certification import Certifier
-
-    for d in ['data/raw', 'data/trades', 'data/optimization', 'reports']:
+def ensure_dirs():
+    for d in ['data/raw', 'data/trades', 'data/optimization',
+              'data/certifications', 'reports']:
         Path(d).mkdir(parents=True, exist_ok=True)
 
-    # 1. Datos
-    logger.info("=== Descargando datos reales ===")
-    de = DataEngine()
+
+def phase(n: int, name: str):
+    logger.info("")
+    logger.info("=" * 60)
+    logger.info(f"  FASE {n}: {name}")
+    logger.info("=" * 60)
+
+
+def main():
+    ensure_dirs()
+
+    # Importar aquí para evitar errores si falta alguna dep
+    try:
+        from data_engine import DataEngine
+        from signal_engine import Signal
+        from config import SYMBOLS, DEFAULT_PARAMS
+        from ophelia_lab.backtest_engine import BacktestEngine
+        from ophelia_lab.walk_forward import WalkForward
+        from ophelia_lab.monte_carlo import MonteCarlo
+        from ophelia_lab.trailing_lab import TrailingLab
+        from ophelia_lab.break_even_lab import BreakEvenLab
+        from ophelia_lab.leverage_lab import LeverageLab
+        from ophelia_lab.certification import Certifier
+        from ophelia_lab.report_generator import ReportGenerator
+    except ImportError as e:
+        logger.error(f"❌ Error importando: {e}")
+        sys.exit(1)
+
+    # ============================================================
+    # FASE 1: Descarga
+    # ============================================================
+    phase(1, "Descarga de datos reales")
+    try:
+        de = DataEngine()
+    except Exception as e:
+        logger.error(f"❌ DataEngine falló: {e}")
+        sys.exit(1)
+
     data_dict = {}
     for sym in SYMBOLS:
         df = de.fetch_ohlcv(sym, limit=500)
         if df is not None and not df.empty:
             data_dict[sym] = df
-    logger.info(f"✅ {len(data_dict)} activos descargados")
+    logger.info(f"✅ {len(data_dict)}/{len(SYMBOLS)} activos descargados")
 
-    if not data_dict:
-        logger.error("❌ Sin datos. Abortando.")
-        return
+    if len(data_dict) < 5:
+        logger.error("❌ Muy pocos activos. Abortando.")
+        sys.exit(1)
 
-    # 2. Backtest
-    logger.info("=== Ejecutando backtest ===")
+    # ============================================================
+    # FASE 2: Backtest
+    # ============================================================
+    phase(2, "Backtest realista")
     def sig_fn(symbol, df):
         s = Signal(symbol, df, DEFAULT_PARAMS)
         return s.to_dict()
@@ -46,48 +80,86 @@ def main():
     trades_df = bt.run(data_dict, sig_fn)
     bt_metrics = bt.compute_metrics()
 
-    import json
-    Path('data/trades').mkdir(exist_ok=True)
     if not trades_df.empty:
         trades_df.to_parquet('data/trades/trades.parquet')
-    Path('data/optimization/backtest_metrics.json').write_text(json.dumps(bt_metrics, default=str, indent=2))
-    logger.info(f"✅ Backtest: {bt_metrics.get('n_trades', 0)} trades")
+    Path('data/optimization/backtest_metrics.json').write_text(
+        json.dumps(bt_metrics, default=str, indent=2)
+    )
+    logger.info(f"✅ {bt_metrics.get('n_trades', 0)} trades ejecutados")
+    logger.info(f"   Win Rate: {bt_metrics.get('win_rate', 0):.2%}")
+    logger.info(f"   PF: {bt_metrics.get('profit_factor', 0)}")
+    logger.info(f"   Sharpe: {bt_metrics.get('sharpe', 0)}")
 
     if trades_df.empty:
-        logger.warning("Sin trades para análisis adicional")
+        logger.warning("⚠️ Sin trades. Se genera certificación con estado PENDING.")
         Certifier.generate()
+        ReportGenerator.generate_all()
         return
 
-    # 3. Labs
-    logger.info("=== Labs ===")
+    # ============================================================
+    # FASE 3: Labs
+    # ============================================================
+    phase(3, "Labs de optimización")
+
     trail = TrailingLab.optimize(trades_df)
     if not trail.empty:
         trail.to_csv('data/optimization/trailing_optimal.csv', index=False)
+        logger.info(f"✅ Trailing óptimo: {len(trail)} activos")
 
     be = BreakEvenLab.optimize(trades_df)
     if not be.empty:
         be.to_csv('data/optimization/break_even_optimal.csv', index=False)
+        logger.info(f"✅ Break Even óptimo: {len(be)} activos")
 
     lev = LeverageLab.analyze(trades_df)
     if not lev.empty:
         lev.to_csv('data/optimization/leverage_full.csv', index=False)
+        logger.info(f"✅ Leverage analizado: {len(lev)} filas")
 
-    # 4. Walk-Forward
-    logger.info("=== Walk-Forward ===")
+    # ============================================================
+    # FASE 4: Walk-Forward
+    # ============================================================
+    phase(4, "Walk-Forward Validation")
     def bt_fn(d):
         b = BacktestEngine()
         b.run(d, sig_fn)
         return b.compute_metrics()
-    WalkForward().validate(data_dict, bt_fn)
 
-    # 5. Monte Carlo
-    logger.info("=== Monte Carlo ===")
-    MonteCarlo.run(trades_df)
+    try:
+        wf_df = WalkForward(n_windows=5).validate(data_dict, bt_fn)
+        logger.info(f"✅ Walk-Forward: {len(wf_df)} ventanas")
+    except Exception as e:
+        logger.warning(f"⚠️ Walk-Forward falló: {e}")
 
-    # 6. Certificación
-    logger.info("=== Certificación ===")
-    Certifier.generate()
-    logger.info("✅ Pipeline completo. Revisar reports/")
+    # ============================================================
+    # FASE 5: Monte Carlo
+    # ============================================================
+    phase(5, "Monte Carlo (10k simulaciones)")
+    try:
+        mc = MonteCarlo.run(trades_df, n_sims=10000)
+        logger.info(f"✅ MC: ruin_prob={mc.get('ruin_probability', 0):.2%}")
+    except Exception as e:
+        logger.warning(f"⚠️ Monte Carlo falló: {e}")
+
+    # ============================================================
+    # FASE 6: Certificación
+    # ============================================================
+    phase(6, "Certificación")
+    try:
+        Certifier.generate()
+        ReportGenerator.generate_all()
+        logger.info("✅ Reportes generados en reports/")
+    except Exception as e:
+        logger.error(f"❌ Certificación falló: {e}")
+
+    logger.info("")
+    logger.info("=" * 60)
+    logger.info("  ✅ PIPELINE COMPLETO")
+    logger.info("=" * 60)
+    logger.info("Revisá:")
+    logger.info("  - reports/full_report.txt")
+    logger.info("  - reports/CERTIFICATION_REPORT.md")
+    logger.info("  - reports/MONTE_CARLO_REPORT.md")
 
 
 if __name__ == '__main__':

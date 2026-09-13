@@ -8,7 +8,7 @@ import json
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, List
 
 
@@ -31,17 +31,15 @@ class OperationalReport:
     # CARGA DE DATOS
     # ============================================================
     def _load_all_data(self) -> Dict:
-        """Carga todos los archivos generados por run_lab.py."""
         return {
-            'backtest': self._load_json('data/optimization/backtest_metrics.json'),
-            'monte_carlo': self._load_json('data/optimization/monte_carlo.json'),
+            'backtest':     self._load_json('data/optimization/backtest_metrics.json'),
+            'monte_carlo':  self._load_json('data/optimization/monte_carlo.json'),
             'walk_forward': self._load_df('data/optimization/walk_forward.json'),
             'optimization': self._load_json('data/optimization/optimization_history.json'),
-            'trailing': self._load_df('data/optimization/trailing_optimal.csv'),
-            'break_even': self._load_df('data/optimization/break_even_optimal.csv'),
-            'leverage': self._load_df('data/optimization/leverage_optimal.csv'),
-            'trades': self._load_df('data/trades/trades.parquet'),
-            'signals': self._load_json('data/optimization/last_signals.json'),
+            'trailing':     self._load_df('data/optimization/trailing_optimal.csv'),
+            'break_even':   self._load_df('data/optimization/break_even_optimal.csv'),
+            'leverage':     self._load_df('data/optimization/leverage_optimal.csv'),
+            'trades':       self._load_df('data/trades/trades.parquet'),
         }
 
     @staticmethod
@@ -50,7 +48,7 @@ class OperationalReport:
         if not p.exists():
             return None
         try:
-            return json.loads(p.read_text())
+            return json.loads(p.read_text(encoding='utf-8'))
         except Exception:
             return None
 
@@ -72,13 +70,27 @@ class OperationalReport:
 
     @staticmethod
     def _fmt(value, fmt='.4f', suffix='') -> str:
-        """Formatea un valor o marca NO VALIDADO."""
-        if value is None or (isinstance(value, float) and np.isnan(value)):
+        if value is None:
+            return "❌ NO VALIDADO"
+        if isinstance(value, float) and (np.isnan(value) or np.isinf(value)):
             return "❌ NO VALIDADO"
         try:
             return f"{value:{fmt}}{suffix}"
         except Exception:
             return str(value)
+
+    @staticmethod
+    def _safe_to_datetime(series: pd.Series) -> pd.Series:
+        """
+        Convierte una serie a datetime sin importar si es string, int,
+        o datetime ya parseado. Y sin importar el timezone.
+        """
+        try:
+            dt = pd.to_datetime(series, errors='coerce', utc=True)
+            # Quitar tz para cálculos uniformes
+            return dt.dt.tz_convert(None)
+        except Exception:
+            return pd.to_datetime(series, errors='coerce')
 
     # ============================================================
     # GENERADOR PRINCIPAL
@@ -110,12 +122,14 @@ class OperationalReport:
     # SECCIONES
     # ============================================================
     def _section_header(self) -> List[str]:
+        bt = self.data['backtest']
+        status = "✅ VALIDADO" if (bt and bt.get('status') == 'VALIDATED') else "❌ NO VALIDADO"
         return [
             "# 🔬 OPHELIA OPERATIONAL REPORT",
             "",
-            f"**Generado:** {datetime.utcnow().isoformat()} UTC",
+            f"**Generado:** {datetime.now(timezone.utc).isoformat()} UTC",
             f"**Fuente:** Ejecución real de `run_lab.py`",
-            f"**Estado global:** {'✅ VALIDADO' if self.data['backtest'] and self.data['backtest'].get('status') == 'VALIDATED' else '❌ NO VALIDADO'}",
+            f"**Estado global:** {status}",
             "",
             "> Este reporte se genera EXCLUSIVAMENTE con datos reales.",
             "> Las métricas marcadas con `❌ NO VALIDADO` requieren ejecutar el pipeline.",
@@ -130,10 +144,10 @@ class OperationalReport:
 
         if bt and bt.get('status') == 'VALIDATED':
             lines.append(f"**Trades ejecutados:** {bt.get('n_trades', 0)}")
-            lines.append(f"**Win Rate:** {self._fmt(bt.get('win_rate'), '.2%')}")
-            lines.append(f"**Profit Factor:** {self._fmt(bt.get('profit_factor'), '.3f')}")
-            lines.append(f"**Sharpe:** {self._fmt(bt.get('sharpe'), '.3f')}")
-            lines.append(f"**Max Drawdown:** {self._fmt(bt.get('max_drawdown_pct'), '.2f', '%')}")
+            lines.append(f"**Win Rate:** {self._fmt(bt.get('win_rate'), '.4f')}")
+            lines.append(f"**Profit Factor:** {self._fmt(bt.get('profit_factor'), '.4f')}")
+            lines.append(f"**Sharpe:** {self._fmt(bt.get('sharpe'), '.4f')}")
+            lines.append(f"**Max Drawdown:** {self._fmt(bt.get('max_drawdown_pct'), '.4f', '%')}")
             lines.append("")
         else:
             lines.append("❌ **NO VALIDADO** — Ejecutá `python run_lab.py` primero.")
@@ -237,7 +251,9 @@ class OperationalReport:
             if tier in bt['by_tier']:
                 m = bt['by_tier'][tier]
                 status = "✅" if m['n'] >= self.MIN_SIGNALS_PER_TIER else "⚠️ muestra insuficiente"
-                lines.append(f"| {tier} | {m['n']} | {m['wr']:.2%} | {m['avg_pnl']:.4f}% | {status} |")
+                lines.append(
+                    f"| {tier} | {m['n']} | {m['wr']:.4f} | {m['avg_pnl']:.4f}% | {status} |"
+                )
 
         lines.append("")
         return lines
@@ -268,11 +284,16 @@ class OperationalReport:
             avg_pnl = sub['net_pnl_pct'].mean()
             dur = sub['duration_minutes'].mean()
 
-            status = "🟢" if (wr > 0.5 and (pf or 0) > 1.2) else ("🟡" if wr > 0.4 else "🔴")
+            if wr > 0.5 and (pf or 0) > 1.2:
+                status = "🟢"
+            elif wr > 0.4:
+                status = "🟡"
+            else:
+                status = "🔴"
 
             lines.append(
-                f"| {sym} | {len(sub)} | {wr:.2%} | "
-                f"{self._fmt(pf, '.3f')} | {avg_pnl*100:.4f}% | "
+                f"| {sym} | {len(sub)} | {wr:.4f} | "
+                f"{self._fmt(pf, '.4f')} | {avg_pnl*100:.4f}% | "
                 f"{dur:.1f} min | {status} |"
             )
 
@@ -303,11 +324,13 @@ class OperationalReport:
             if col in trades.columns:
                 w = wins[col].mean()
                 l = losses[col].mean()
-                lines.append(f"| {col.upper()} | {w:.3f} | {l:.3f} | {w - l:+.3f} |")
+                lines.append(f"| {col.upper()} | {w:.4f} | {l:.4f} | {w - l:+.4f} |")
 
         if 'regime' in trades.columns:
-            w_regime = wins['regime'].mode().iloc[0] if not wins['regime'].mode().empty else 'N/A'
-            l_regime = losses['regime'].mode().iloc[0] if not losses['regime'].mode().empty else 'N/A'
+            w_mode = wins['regime'].mode()
+            l_mode = losses['regime'].mode()
+            w_regime = w_mode.iloc[0] if not w_mode.empty else 'N/A'
+            l_regime = l_mode.iloc[0] if not l_mode.empty else 'N/A'
             lines.append(f"| Régimen dominante | {w_regime} | {l_regime} | — |")
 
         lines.append("")
@@ -330,20 +353,25 @@ class OperationalReport:
         for tier in ['OPHELIA', 'S-TIER', 'A-TIER', 'B-TIER']:
             sub = trades[trades['tier'] == tier]
             if len(sub) < 2:
-                lines.append(f"| {tier} | ❌ datos insuficientes | ❌ datos insuficientes | ❌ datos insuficientes |")
+                lines.append(
+                    f"| {tier} | ❌ datos insuficientes | ❌ datos insuficientes | ❌ datos insuficientes |"
+                )
                 continue
 
-            sub = sub.sort_values('entry_time')
-            times = pd.to_datetime(sub['entry_time'])
-            intervals = times.diff().dt.total_seconds().dropna() / 60
-            avg_interval = intervals.mean()
-            last = times.iloc[-1]
-            elapsed = (now - last).total_seconds() / 60
-            remaining = max(0, avg_interval - elapsed)
+            try:
+                sub = sub.sort_values('entry_time')
+                times = self._safe_to_datetime(sub['entry_time'])
+                intervals = times.diff().dt.total_seconds().dropna() / 60
+                avg_interval = intervals.mean()
+                last = times.iloc[-1]
+                elapsed = (now - last).total_seconds() / 60
+                remaining = max(0, avg_interval - elapsed)
 
-            lines.append(
-                f"| {tier} | {elapsed:.0f} min | {avg_interval:.0f} min | {remaining:.0f} min |"
-            )
+                lines.append(
+                    f"| {tier} | {elapsed:.0f} min | {avg_interval:.0f} min | {remaining:.0f} min |"
+                )
+            except Exception:
+                lines.append(f"| {tier} | ❌ error de cálculo | ❌ error de cálculo | ❌ error de cálculo |")
 
         lines.append("")
         return lines
@@ -357,10 +385,15 @@ class OperationalReport:
             lines.append("")
             return lines
 
-        trades = trades.copy()
-        trades['entry_dt'] = pd.to_datetime(trades['entry_time'])
-        trades['hour'] = trades['entry_dt'].dt.hour
-        trades['weekday'] = trades['entry_dt'].dt.day_name()
+        try:
+            trades = trades.copy()
+            trades['entry_dt'] = self._safe_to_datetime(trades['entry_time'])
+            trades['hour'] = trades['entry_dt'].dt.hour
+            trades['weekday'] = trades['entry_dt'].dt.day_name()
+        except Exception:
+            lines.append("❌ Error procesando timestamps.")
+            lines.append("")
+            return lines
 
         lines.append("### Por Hora (UTC)")
         lines.append("| Hora | Trades | Win Rate | Avg PnL |")
@@ -369,7 +402,7 @@ class OperationalReport:
         for hour, sub in trades.groupby('hour'):
             wr = (sub['net_pnl_pct'] > 0).mean()
             avg = sub['net_pnl_pct'].mean()
-            lines.append(f"| {hour:02d}:00 | {len(sub)} | {wr:.2%} | {avg*100:.4f}% |")
+            lines.append(f"| {hour:02d}:00 | {len(sub)} | {wr:.4f} | {avg*100:.4f}% |")
 
         lines.append("")
         lines.append("### Por Día de la Semana")
@@ -379,17 +412,16 @@ class OperationalReport:
         for day, sub in trades.groupby('weekday'):
             wr = (sub['net_pnl_pct'] > 0).mean()
             avg = sub['net_pnl_pct'].mean()
-            lines.append(f"| {day} | {len(sub)} | {wr:.2%} | {avg*100:.4f}% |")
+            lines.append(f"| {day} | {len(sub)} | {wr:.4f} | {avg*100:.4f}% |")
 
         lines.append("")
         return lines
 
     def _section_simulation(self) -> List[str]:
         lines = ["## 10. Simulación Operativa (basada en histórico)", ""]
-        bt = self.data['backtest']
         trades = self.data['trades']
 
-        if bt is None or trades is None or trades.empty:
+        if trades is None or trades.empty:
             lines.append("❌ **NO VALIDADO**")
             lines.append("")
             return lines
@@ -406,15 +438,15 @@ class OperationalReport:
                     continue
 
                 returns = sub['net_pnl_pct'].values
-                equity = capital * (1 + returns).cumprod()
-                total_return = (equity.iloc[-1] / capital - 1) * 100 if hasattr(equity, 'iloc') else (equity[-1] / capital - 1) * 100
+                equity = capital * np.cumprod(1 + returns)
+                total_return = (equity[-1] / capital - 1) * 100
                 peak = np.maximum.accumulate(equity)
                 dd = ((peak - equity) / peak).max() * 100
                 prob_loss = (returns < 0).mean()
 
                 lines.append(
-                    f"| {tier} | {len(sub)} | {total_return:.2f}% | "
-                    f"{dd:.2f}% | {prob_loss:.2%} |"
+                    f"| {tier} | {len(sub)} | {total_return:.4f}% | "
+                    f"{dd:.4f}% | {prob_loss:.4f} |"
                 )
 
             lines.append("")
@@ -438,7 +470,6 @@ class OperationalReport:
                 lines.append(f"| {sym} | — | ❌ No | Muestra insuficiente ({len(sub)}) |")
                 continue
 
-            # Tier con mejor WR
             best_tier = None
             best_wr = -1
             for tier in ['OPHELIA', 'S-TIER', 'A-TIER', 'B-TIER']:
@@ -452,13 +483,13 @@ class OperationalReport:
             wr_global = (sub['net_pnl_pct'] > 0).mean()
             if wr_global > 0.55 and len(sub) >= 20:
                 op = "✅ Sí"
-                motivo = f"WR {wr_global:.1%}, N={len(sub)}"
+                motivo = f"WR {wr_global:.4f}, N={len(sub)}"
             elif wr_global > 0.45 and len(sub) >= 10:
                 op = "⚠️ Observación"
-                motivo = f"WR {wr_global:.1%}, N={len(sub)}"
+                motivo = f"WR {wr_global:.4f}, N={len(sub)}"
             else:
                 op = "❌ No"
-                motivo = f"WR {wr_global:.1%} bajo o N insuficiente"
+                motivo = f"WR {wr_global:.4f} bajo o N insuficiente"
 
             lines.append(f"| {sym} | {best_tier or '—'} | {op} | {motivo} |")
 
@@ -479,30 +510,34 @@ class OperationalReport:
         # Sobreoptimización
         opt = self.data['optimization']
         if opt and len(opt) > 0:
-            first = opt[0].get('metrics', {})
-            last = opt[-1].get('metrics', {})
+            first = opt[0].get('metrics', {}) or {}
+            last = opt[-1].get('metrics', {}) or {}
             delta_wr = (last.get('win_rate', 0) or 0) - (first.get('win_rate', 0) or 0)
             if delta_wr > 0.30:
-                alerts.append(f"⚠️ **Sobreoptimización:** mejora de WR {delta_wr:.1%} entre baseline y final. Riesgo de overfitting.")
+                alerts.append(
+                    f"⚠️ **Sobreoptimización:** mejora de WR {delta_wr:.4f} entre baseline y final."
+                )
 
         # Muestras insuficientes
         if bt.get('n_trades', 0) < 100:
-            alerts.append(f"⚠️ **Muestra baja:** solo {bt.get('n_trades', 0)} trades. Mínimo recomendado: 100.")
+            alerts.append(
+                f"⚠️ **Muestra baja:** solo {bt.get('n_trades', 0)} trades. Mínimo recomendado: 100."
+            )
 
         # Drawdown excesivo
         dd = bt.get('max_drawdown_pct', 0) or 0
         if dd > self.MAX_DRAWDOWN_OK:
-            alerts.append(f"⚠️ **Drawdown elevado:** {dd:.2f}% > {self.MAX_DRAWDOWN_OK}%.")
+            alerts.append(f"⚠️ **Drawdown elevado:** {dd:.4f}% > {self.MAX_DRAWDOWN_OK}%.")
 
         # Profit factor bajo
         pf = bt.get('profit_factor', 0) or 0
         if pf < self.MIN_PROFIT_FACTOR_OK:
-            alerts.append(f"⚠️ **Profit Factor bajo:** {pf:.3f} < {self.MIN_PROFIT_FACTOR_OK}.")
+            alerts.append(f"⚠️ **Profit Factor bajo:** {pf:.4f} < {self.MIN_PROFIT_FACTOR_OK}.")
 
         # Sharpe bajo
         sh = bt.get('sharpe', 0) or 0
         if sh < self.MIN_SHARPE_OK:
-            alerts.append(f"⚠️ **Sharpe bajo:** {sh:.3f} < {self.MIN_SHARPE_OK}.")
+            alerts.append(f"⚠️ **Sharpe bajo:** {sh:.4f} < {self.MIN_SHARPE_OK}.")
 
         # Activos inestables
         for sym in trades['symbol'].unique():
@@ -511,7 +546,7 @@ class OperationalReport:
                 continue
             wr = (sub['net_pnl_pct'] > 0).mean()
             if wr < 0.30 and len(sub) >= 20:
-                alerts.append(f"⚠️ **{sym}:** WR muy bajo ({wr:.1%}) con N={len(sub)}.")
+                alerts.append(f"⚠️ **{sym}:** WR muy bajo ({wr:.4f}) con N={len(sub)}.")
 
         if not alerts:
             lines.append("✅ **No se detectaron alertas críticas.**")
@@ -582,7 +617,7 @@ class OperationalReport:
             "python -c 'from ophelia_lab.operational_report import OperationalReport; OperationalReport().generate()'",
             "```",
             "",
-            f"**Generado:** {datetime.utcnow().isoformat()} UTC",
+            f"**Generado:** {datetime.now(timezone.utc).isoformat()} UTC",
         ]
 
 

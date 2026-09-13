@@ -1,6 +1,6 @@
 # run_lab.py
 """
-Orquestador completo: datos → backtest → labs → validación → certificación.
+Orquestador completo: datos → backtest → labs → validación → certificación → reporte operativo.
 """
 import logging
 import json
@@ -30,7 +30,7 @@ def phase(n: int, name: str):
 def main():
     ensure_dirs()
 
-    # Importar aquí para evitar errores si falta alguna dep
+    # Importaciones controladas
     try:
         from data_engine import DataEngine
         from signal_engine import Signal
@@ -43,12 +43,13 @@ def main():
         from ophelia_lab.leverage_lab import LeverageLab
         from ophelia_lab.certification import Certifier
         from ophelia_lab.report_generator import ReportGenerator
+        from ophelia_lab.operational_report import OperationalReport
     except ImportError as e:
         logger.error(f"❌ Error importando: {e}")
         sys.exit(1)
 
     # ============================================================
-    # FASE 1: Descarga
+    # FASE 1: Descarga de datos
     # ============================================================
     phase(1, "Descarga de datos reales")
     try:
@@ -59,9 +60,12 @@ def main():
 
     data_dict = {}
     for sym in SYMBOLS:
-        df = de.fetch_ohlcv(sym, limit=500)
-        if df is not None and not df.empty:
-            data_dict[sym] = df
+        try:
+            df = de.fetch_ohlcv(sym, limit=500)
+            if df is not None and not df.empty:
+                data_dict[sym] = df
+        except Exception as e:
+            logger.warning(f"⚠️ Error con {sym}: {e}")
     logger.info(f"✅ {len(data_dict)}/{len(SYMBOLS)} activos descargados")
 
     if len(data_dict) < 5:
@@ -69,9 +73,10 @@ def main():
         sys.exit(1)
 
     # ============================================================
-    # FASE 2: Backtest
+    # FASE 2: Backtest realista
     # ============================================================
     phase(2, "Backtest realista")
+
     def sig_fn(symbol, df):
         s = Signal(symbol, df, DEFAULT_PARAMS)
         return s.to_dict()
@@ -83,10 +88,11 @@ def main():
     if not trades_df.empty:
         trades_df.to_parquet('data/trades/trades.parquet')
     Path('data/optimization/backtest_metrics.json').write_text(
-        json.dumps(bt_metrics, default=str, indent=2)
+        json.dumps(bt_metrics, default=str, indent=2),
+        encoding='utf-8'
     )
     logger.info(f"✅ {bt_metrics.get('n_trades', 0)} trades ejecutados")
-    logger.info(f"   Win Rate: {bt_metrics.get('win_rate', 0):.2%}")
+    logger.info(f"   Win Rate: {bt_metrics.get('win_rate', 0)}")
     logger.info(f"   PF: {bt_metrics.get('profit_factor', 0)}")
     logger.info(f"   Sharpe: {bt_metrics.get('sharpe', 0)}")
 
@@ -94,6 +100,7 @@ def main():
         logger.warning("⚠️ Sin trades. Se genera certificación con estado PENDING.")
         Certifier.generate()
         ReportGenerator.generate_all()
+        OperationalReport().generate()
         return
 
     # ============================================================
@@ -101,25 +108,35 @@ def main():
     # ============================================================
     phase(3, "Labs de optimización")
 
-    trail = TrailingLab.optimize(trades_df)
-    if not trail.empty:
-        trail.to_csv('data/optimization/trailing_optimal.csv', index=False)
-        logger.info(f"✅ Trailing óptimo: {len(trail)} activos")
+    try:
+        trail = TrailingLab.optimize(trades_df)
+        if not trail.empty:
+            trail.to_csv('data/optimization/trailing_optimal.csv', index=False)
+            logger.info(f"✅ Trailing óptimo: {len(trail)} activos")
+    except Exception as e:
+        logger.warning(f"⚠️ Trailing Lab falló: {e}")
 
-    be = BreakEvenLab.optimize(trades_df)
-    if not be.empty:
-        be.to_csv('data/optimization/break_even_optimal.csv', index=False)
-        logger.info(f"✅ Break Even óptimo: {len(be)} activos")
+    try:
+        be = BreakEvenLab.optimize(trades_df)
+        if not be.empty:
+            be.to_csv('data/optimization/break_even_optimal.csv', index=False)
+            logger.info(f"✅ Break Even óptimo: {len(be)} activos")
+    except Exception as e:
+        logger.warning(f"⚠️ Break Even Lab falló: {e}")
 
-    lev = LeverageLab.analyze(trades_df)
-    if not lev.empty:
-        lev.to_csv('data/optimization/leverage_full.csv', index=False)
-        logger.info(f"✅ Leverage analizado: {len(lev)} filas")
+    try:
+        lev = LeverageLab.analyze(trades_df)
+        if not lev.empty:
+            lev.to_csv('data/optimization/leverage_full.csv', index=False)
+            logger.info(f"✅ Leverage analizado: {len(lev)} filas")
+    except Exception as e:
+        logger.warning(f"⚠️ Leverage Lab falló: {e}")
 
     # ============================================================
     # FASE 4: Walk-Forward
     # ============================================================
     phase(4, "Walk-Forward Validation")
+
     def bt_fn(d):
         b = BacktestEngine()
         b.run(d, sig_fn)
@@ -137,18 +154,23 @@ def main():
     phase(5, "Monte Carlo (10k simulaciones)")
     try:
         mc = MonteCarlo.run(trades_df, n_sims=10000)
-        logger.info(f"✅ MC: ruin_prob={mc.get('ruin_probability', 0):.2%}")
+        logger.info(f"✅ MC: ruin_prob={mc.get('ruin_probability', 0)}")
     except Exception as e:
         logger.warning(f"⚠️ Monte Carlo falló: {e}")
 
     # ============================================================
-    # FASE 6: Certificación
+    # FASE 6: Certificación + Reportes
     # ============================================================
-    phase(6, "Certificación")
+    phase(6, "Certificación y Reportes")
     try:
         Certifier.generate()
         ReportGenerator.generate_all()
-        logger.info("✅ Reportes generados en reports/")
+        OperationalReport().generate()
+        logger.info("✅ Reportes generados:")
+        logger.info("   - reports/full_report.txt")
+        logger.info("   - reports/CERTIFICATION_REPORT.md")
+        logger.info("   - reports/MONTE_CARLO_REPORT.md")
+        logger.info("   - reports/OPHELIA_OPERATIONAL_REPORT.md")
     except Exception as e:
         logger.error(f"❌ Certificación falló: {e}")
 
@@ -156,10 +178,6 @@ def main():
     logger.info("=" * 60)
     logger.info("  ✅ PIPELINE COMPLETO")
     logger.info("=" * 60)
-    logger.info("Revisá:")
-    logger.info("  - reports/full_report.txt")
-    logger.info("  - reports/CERTIFICATION_REPORT.md")
-    logger.info("  - reports/MONTE_CARLO_REPORT.md")
 
 
 if __name__ == '__main__':

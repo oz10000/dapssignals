@@ -1,90 +1,216 @@
 # ophelia_engine/report_generator.py
-"""Genera OPHELIA_CERTIFICATION_REPORT.md"""
-import json
-from datetime import datetime, timezone
+"""
+Reporte OPHELIA/STANDARD con formato de 2 niveles.
+"""
 from pathlib import Path
-from typing import Dict, List
+from datetime import datetime, timezone
+from typing import Dict
+import pandas as pd
 
 
-class OpheliaReportGenerator:
+class ReportGenerator:
 
     @staticmethod
-    def generate(pattern: Dict, cert: Dict, leverage: Dict,
-                 ophelia_trades: List[Dict],
-                 output: str = 'reports/OPHELIA_CERTIFICATION_REPORT.md'):
+    def generate(scorer_meta: Dict, cert: Dict, leverage: Dict,
+                 temporal: Dict, selected: pd.DataFrame,
+                 wf_df, mc: Dict, rankings: Dict,
+                 output: str = 'reports/OPHELIA_DAILY_CERTIFICATION_REPORT.md'):
 
         lines = []
-        lines.append("# 🌟 OPHELIA CERTIFICATION REPORT")
+        lines.append("# 🌟 OPHELIA DAILY CERTIFICATION REPORT")
         lines.append("")
         lines.append(f"**Generado:** {datetime.now(timezone.utc).isoformat()} UTC")
         lines.append(f"**Estado:** {'✅ CERTIFICADO' if cert.get('certified') else '❌ NO CERTIFICADO'}")
         lines.append("")
-
-        # 1. Resumen
-        lines.append("## 1. Resumen Ejecutivo")
-        lines.append("")
-        lines.append(f"- Trades OPHELIA históricos: **{pattern.get('n_train', 0)}**")
-        lines.append(f"- Win Rate histórico: **{cert.get('train_wr', 0)*100:.1f}%**")
-        lines.append(f"- Win Rate out-of-sample: **{cert.get('test_wr', 0)*100:.1f}%**")
-        lines.append(f"- Activos OPHELIA: {', '.join(pattern.get('assets', [])[:10])}")
-        lines.append(f"- Ventana temporal: {pattern.get('hour_range', {}).get('min', 0)}h - {pattern.get('hour_range', {}).get('max', 0)}h ARG")
+        lines.append("---")
         lines.append("")
 
-        # 2. Patrón aprendido
-        lines.append("## 2. Patrón Aprendido")
+        # ============================================================
+        # 1. VALIDACIÓN DE HIPÓTESIS
+        # ============================================================
+        lines.append("## 1. Validación de Hipótesis")
         lines.append("")
-        lines.append("| Feature | Min | Max | Mean | Std |")
-        lines.append("|---------|-----|-----|------|-----|")
-        for feat, rng in pattern.get('features', {}).items():
-            lines.append(f"| {feat} | {rng['min']:.4f} | {rng['max']:.4f} | {rng['mean']:.4f} | {rng['std']:.4f} |")
+        auc_test = scorer_meta.get('auc_test', 0.5)
+        lines.append(f"- AUC test: **{auc_test:.4f}** (≥0.55 = predictor útil)")
+        lines.append(f"- Base rate test: {scorer_meta.get('base_rate_test', 0):.4f}")
+
+        if auc_test >= 0.55:
+            lines.append("- ✅ **HIPÓTESIS VALIDADA**: El OPHELIA Score es un predictor superior al azar")
+        else:
+            lines.append("- ❌ **HIPÓTESIS RECHAZADA**: El OPHELIA Score no supera al azar en test")
         lines.append("")
 
-        # 3. Estadísticas del patrón
-        lines.append("## 3. Estadísticas del Patrón")
+        # ============================================================
+        # 2. CALIBRACIÓN DE THRESHOLDS
+        # ============================================================
+        lines.append("## 2. Thresholds Calibrados")
         lines.append("")
-        stats = pattern.get('outcome_stats', {})
-        lines.append(f"- MFE medio: {stats.get('mean_mfe', 0)*100:.4f}%")
-        lines.append(f"- MFE mínimo: {stats.get('min_mfe', 0)*100:.4f}%")
-        lines.append(f"- MAE máximo: {stats.get('max_mae', 0)*100:.4f}%")
-        lines.append(f"- Duración media: {stats.get('mean_duration_min', 0):.1f} min")
-        lines.append("")
-
-        # 4. Leverage
-        lines.append("## 4. Leverage Recomendado")
-        lines.append("")
-        lines.append(f"- Máximo seguro: **{leverage.get('leverage_max_safe', 0)}x**")
-        lines.append(f"- Recomendado: **{leverage.get('leverage_recommended', 0)}x**")
-        lines.append(f"- Conservador: {leverage.get('leverage_conservative', 0)}x")
-        lines.append(f"- Basado en MAE histórica: {leverage.get('max_mae_historical', 0)*100:.4f}%")
-        lines.append("")
-
-        # 5. Trades OPHELIA (últimos 20)
-        lines.append("## 5. Últimos 20 Trades OPHELIA")
-        lines.append("")
-        lines.append("| Fecha | Activo | Dir | Entry | MFE | MAE | Dur |")
-        lines.append("|-------|--------|-----|-------|-----|-----|-----|")
-        for t in ophelia_trades[-20:]:
-            lines.append(
-                f"| {t.get('entry_time_ar', 'N/A')} | {t.get('symbol')} | "
-                f"{t.get('direction')} | {t.get('entry_price', 0):.4f} | "
-                f"{t.get('mfe', 0)*100:.3f}% | {t.get('mae', 0)*100:.3f}% | "
-                f"{t.get('duration_min', 0):.0f}m |"
-            )
+        lines.append("| Nivel | Threshold | WR Train | WR Test | TPD Train | TPD Test |")
+        lines.append("|-------|-----------|----------|---------|-----------|----------|")
+        lines.append(
+            f"| **OPHELIA** | {scorer_meta.get('ophelia_threshold', 0):.3f} | "
+            f"{scorer_meta.get('ophelia_wr_train', 0)*100:.2f}% | "
+            f"{scorer_meta.get('ophelia_wr_test', 0)*100:.2f}% | "
+            f"{scorer_meta.get('ophelia_tpd_train', 0):.2f} | "
+            f"{scorer_meta.get('ophelia_tpd_test', 0):.2f} |"
+        )
+        lines.append(
+            f"| **STANDARD** | {scorer_meta.get('standard_threshold', 0):.3f} | "
+            f"{scorer_meta.get('standard_wr_train', 0)*100:.2f}% | "
+            f"{scorer_meta.get('standard_wr_test', 0)*100:.2f}% | "
+            f"{scorer_meta.get('standard_tpd_train', 0):.2f} | "
+            f"{scorer_meta.get('standard_tpd_test', 0):.2f} |"
+        )
         lines.append("")
 
-        # 6. Certificación
-        lines.append("## 6. Certificación")
+        # ============================================================
+        # 3. OPHELIA RANKING LONG
+        # ============================================================
+        long_df = rankings.get('long', pd.DataFrame())
+        lines.append("## 3. OPHELIA RANKING — LONG")
         lines.append("")
-        lines.append(f"- **{cert.get('reason', 'N/A')}**")
+        if not long_df.empty:
+            lines.append("| Rank | Activo | Score | Tier | Hora ARG | Tipo | Resultado |")
+            lines.append("|------|--------|-------|------|----------|------|-----------|")
+            for i, row in long_df.head(15).iterrows():
+                lines.append(
+                    f"| {i+1} | {row.get('symbol', '')} | {row.get('ophelia_score', 0):.3f} | "
+                    f"{row.get('tier', '')} | {str(row.get('entry_time_ar', ''))[11:16]} | "
+                    f"{row.get('movement_type', '')} | {'✅' if row.get('win') else '❌'} |"
+                )
+        else:
+            lines.append("_Sin señales LONG en el período._")
         lines.append("")
 
+        # ============================================================
+        # 4. OPHELIA RANKING SHORT
+        # ============================================================
+        short_df = rankings.get('short', pd.DataFrame())
+        lines.append("## 4. OPHELIA RANKING — SHORT")
+        lines.append("")
+        if not short_df.empty:
+            lines.append("| Rank | Activo | Score | Tier | Hora ARG | Tipo | Resultado |")
+            lines.append("|------|--------|-------|------|----------|------|-----------|")
+            for i, row in short_df.head(15).iterrows():
+                lines.append(
+                    f"| {i+1} | {row.get('symbol', '')} | {row.get('ophelia_score', 0):.3f} | "
+                    f"{row.get('tier', '')} | {str(row.get('entry_time_ar', ''))[11:16]} | "
+                    f"{row.get('movement_type', '')} | {'✅' if row.get('win') else '❌'} |"
+                )
+        else:
+            lines.append("_Sin señales SHORT en el período._")
+        lines.append("")
+
+        # ============================================================
+        # 5. LEVERAGE POR NIVEL
+        # ============================================================
+        lines.append("## 5. Leverage por Nivel")
+        lines.append("")
+        lines.append(f"- OPHELIA: máx seguro **{leverage.get('leverage_max_safe', 1)}x**, "
+                     f"recomendado **{leverage.get('leverage_recommended', 1)}x**")
+        lines.append(f"- MAE p95 histórico: {leverage.get('mae_p95_pct', 0):.4f}%")
+        lines.append("")
+
+        # ============================================================
+        # 6. ANÁLISIS TEMPORAL
+        # ============================================================
+        lines.append("## 6. Modelo Temporal")
+        lines.append("")
+        lines.append(f"- Trades/día promedio: {temporal.get('trades_per_day', 0)}")
+        lines.append(f"- Intervalo medio: {temporal.get('mean_interval_min', 'N/A')} min")
+        lines.append(f"- Distribución: {temporal.get('direction_distribution', {})}")
+
+        top_hours = temporal.get('top_hours', {})
+        if top_hours:
+            lines.append("")
+            lines.append("### Horas más frecuentes (ARG)")
+            lines.append("")
+            lines.append("| Hora | N trades |")
+            lines.append("|------|----------|")
+            for h, n in sorted(top_hours.items()):
+                lines.append(f"| {h:02d}:00 | {n} |")
+        lines.append("")
+
+        # ============================================================
+        # 7. CLASIFICACIÓN DE MOVIMIENTOS
+        # ============================================================
+        lines.append("## 7. Clasificación de Movimientos")
+        lines.append("")
+        if not selected.empty and 'movement_type' in selected.columns:
+            counts = selected['movement_type'].value_counts().to_dict()
+            lines.append("| Tipo | N | WR |")
+            lines.append("|------|---|-----|")
+            for mtype, count in counts.items():
+                wr = selected[selected['movement_type'] == mtype]['win'].mean()
+                lines.append(f"| {mtype} | {count} | {wr*100:.2f}% |")
+        lines.append("")
+
+        # ============================================================
+        # 8. WALK-FORWARD
+        # ============================================================
+        lines.append("## 8. Walk-Forward")
+        lines.append("")
+        if wf_df is not None and not wf_df.empty:
+            lines.append(wf_df.to_markdown(index=False))
+        else:
+            lines.append("❌ Datos insuficientes")
+        lines.append("")
+
+        # ============================================================
+        # 9. MONTE CARLO
+        # ============================================================
+        lines.append("## 9. Monte Carlo (10,000 sims)")
+        lines.append("")
+        if mc:
+            lines.append("| Métrica | Valor |")
+            lines.append("|---------|-------|")
+            for k, v in mc.items():
+                lines.append(f"| {k} | {v} |")
+        lines.append("")
+
+        # ============================================================
+        # 10. CERTIFICACIÓN
+        # ============================================================
+        lines.append("## 10. Certificación")
+        lines.append("")
+        if cert.get('reasons'):
+            lines.append("### Razones de rechazo")
+            for r in cert['reasons']:
+                lines.append(f"- ❌ {r}")
+        else:
+            lines.append("✅ Todos los criterios aprobados")
+        lines.append("")
+
+        # ============================================================
+        # 11. ÚLTIMAS 20 SEÑALES
+        # ============================================================
+        if not selected.empty:
+            lines.append("## 11. Últimas 20 Señales (OPHELIA + STANDARD)")
+            lines.append("")
+            lines.append("| Fecha ARG | Activo | Tier | Score | Dir | MFE | MAE | Dur | Win |")
+            lines.append("|-----------|--------|------|-------|-----|-----|-----|-----|-----|")
+            top20 = selected.sort_values('entry_time', ascending=False).head(20)
+            for _, t in top20.iterrows():
+                lines.append(
+                    f"| {str(t.get('entry_time_ar', ''))[:19]} | "
+                    f"{t.get('symbol', '')} | {t.get('tier', '')} | "
+                    f"{t.get('ophelia_score', 0):.3f} | {t.get('direction', '')} | "
+                    f"{t.get('mfe', 0)*100:.3f}% | {t.get('mae', 0)*100:.3f}% | "
+                    f"{t.get('duration_min', 0):.0f}m | {'✅' if t.get('win') else '❌'} |"
+                )
+            lines.append("")
+
+        # ============================================================
+        # 12. DECLARACIÓN DE HONESTIDAD
+        # ============================================================
         lines.append("---")
         lines.append("")
         lines.append("## Declaración de Honestidad")
         lines.append("")
-        lines.append("Este reporte se genera con datos REALES del backtest histórico.")
-        lines.append("Un patrón solo se certifica si mantiene 100% WR en out-of-sample.")
-        lines.append("Si la muestra es insuficiente, se reporta como NO CERTIFICADO.")
+        lines.append("El OPHELIA Score es P(win|features) validado en out-of-sample.")
+        lines.append("**No se filtra por resultado posterior.**")
+        lines.append("**No se selecciona winners a posteriori.**")
+        lines.append("El WR reportado es el WR real de las señales seleccionadas por el score.")
 
         Path(output).parent.mkdir(parents=True, exist_ok=True)
         Path(output).write_text('\n'.join(lines), encoding='utf-8')

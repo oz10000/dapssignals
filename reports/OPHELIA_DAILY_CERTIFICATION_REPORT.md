@@ -1,42 +1,41 @@
 # 🌟 OPHELIA DAILY CERTIFICATION REPORT
 
-**Generado:** 2026-09-22T11:30:31.328535+00:00 UTC
+**Generado:** 2026-09-23T10:55:55.876197+00:00 UTC
 **Estado:** ❌ NO CERTIFICADO
 
 ---
 
 ## 1. Validación de Hipótesis
 
-- AUC test: **0.5112** (≥0.55 = predictor útil)
-- Base rate test: 0.2593
+- AUC test: **0.5000** (≥0.55 = predictor útil)
+- Base rate test: 0.3793
 - ❌ **HIPÓTESIS RECHAZADA**: El OPHELIA Score no supera al azar en test
 
 ## 2. Thresholds Calibrados
 
 | Nivel | Threshold | WR Train | WR Test | TPD Train | TPD Test |
 |-------|-----------|----------|---------|-----------|----------|
-| **OPHELIA** | 0.550 | 0.00% | 0.00% | 0.00 | 0.00 |
-| **STANDARD** | 0.450 | 27.27% | 30.00% | 2.84 | 5.00 |
+| **OPHELIA** | 0.550 | 0.00% | 0.00% | 2.00 | 1.00 |
+| **STANDARD** | 0.450 | 40.00% | 37.50% | 5.00 | 4.00 |
 
 ## 3. OPHELIA RANKING — LONG
 
 | Rank | Activo | Score | Tier | Hora ARG | Tipo | Resultado |
 |------|--------|-------|------|----------|------|-----------|
-| 1 | PEPE/USDT | 0.541 | STANDARD | 21:35 | CONTINUACIÓN | ❌ |
-| 2 | PEPE/USDT | 0.537 | STANDARD | 00:50 | CONTINUACIÓN | ❌ |
-| 3 | APT/USDT | 0.536 | STANDARD | 03:20 | CONTINUACIÓN | ❌ |
-| 4 | MATIC/USDT | 0.535 | STANDARD | 11:40 | CONTINUACIÓN | ❌ |
-| 5 | MATIC/USDT | 0.535 | STANDARD | 23:35 | CONTINUACIÓN | ❌ |
-| 6 | WIF/USDT | 0.534 | STANDARD | 22:55 | CONTINUACIÓN | ❌ |
-| 7 | ARB/USDT | 0.534 | STANDARD | 00:40 | CONTINUACIÓN | ❌ |
-| 8 | MATIC/USDT | 0.534 | STANDARD | 19:00 | CONTINUACIÓN | ✅ |
-| 9 | SEI/USDT | 0.534 | STANDARD | 23:20 | CONTINUACIÓN | ❌ |
-| 10 | MATIC/USDT | 0.534 | STANDARD | 00:45 | CONTINUACIÓN | ❌ |
-| 11 | APT/USDT | 0.533 | STANDARD | 00:20 | CONTINUACIÓN | ✅ |
-| 12 | WIF/USDT | 0.533 | STANDARD | 11:40 | CONTINUACIÓN | ❌ |
-| 13 | OP/USDT | 0.533 | STANDARD | 00:00 | CONTINUACIÓN | ❌ |
-| 14 | PEPE/USDT | 0.533 | STANDARD | 01:30 | CONTINUACIÓN | ❌ |
-| 15 | OP/USDT | 0.532 | STANDARD | 11:50 | CONTINUACIÓN | ❌ |
+| 1 | UNI/USDT | 0.679 | OPHELIA | 22:15 | CONTINUACIÓN | ❌ |
+| 2 | APT/USDT | 0.678 | OPHELIA | 21:10 | CONTINUACIÓN | ❌ |
+| 3 | OP/USDT | 0.589 | OPHELIA | 00:40 | CONTINUACIÓN | ❌ |
+| 4 | BTC/USDT | 0.582 | OPHELIA | 01:20 | CONTINUACIÓN | ❌ |
+| 5 | DOT/USDT | 0.542 | STANDARD | 19:30 | CONTINUACIÓN | ❌ |
+| 6 | LTC/USDT | 0.536 | STANDARD | 16:30 | CONTINUACIÓN | ❌ |
+| 7 | AVAX/USDT | 0.534 | STANDARD | 16:05 | CONTINUACIÓN | ❌ |
+| 8 | XRP/USDT | 0.528 | STANDARD | 00:30 | CONTINUACIÓN | ✅ |
+| 9 | LTC/USDT | 0.523 | STANDARD | 01:55 | CONTINUACIÓN | ❌ |
+| 10 | VET/USDT | 0.519 | STANDARD | 21:10 | CONTINUACIÓN | ❌ |
+| 11 | AAVE/USDT | 0.518 | STANDARD | 21:15 | CONTINUACIÓN | ❌ |
+| 12 | AVAX/USDT | 0.514 | STANDARD | 00:40 | CONTINUACIÓN | ❌ |
+| 13 | ETH/USDT | 0.486 | STANDARD | 00:40 | CONTINUACIÓN | ❌ |
+| 14 | ATOM/USDT | 0.481 | STANDARD | 05:30 | CONTINUACIÓN | ❌ |
 
 ## 4. OPHELIA RANKING — SHORT
 
@@ -44,83 +43,73 @@ _Sin señales SHORT en el período._
 
 ## 5. Leverage por Nivel
 
-- OPHELIA: máx seguro **30x**, recomendado **21x**
-- MAE p95 histórico: 0.6216%
+- OPHELIA: máx seguro **27x**, recomendado **18x**
+- MAE p95 histórico: 1.2977%
 
 ## 6. Modelo Temporal
 
-- Trades/día promedio: 3.08
-- Intervalo medio: 3752.0 min
-- Distribución: {'LONG': 308}
+- Trades/día promedio: 7.0
+- Intervalo medio: 80.5 min
+- Distribución: {'LONG': 14}
 
 ### Horas más frecuentes (ARG)
 
 | Hora | N trades |
 |------|----------|
-| 00:00 | 27 |
-| 03:00 | 25 |
-| 21:00 | 67 |
-| 22:00 | 34 |
-| 23:00 | 39 |
+| 00:00 | 4 |
+| 01:00 | 2 |
+| 16:00 | 2 |
+| 19:00 | 1 |
+| 21:00 | 3 |
 
 ## 7. Clasificación de Movimientos
 
 | Tipo | N | WR |
 |------|---|-----|
-| CONTINUACIÓN | 308 | 27.92% |
+| CONTINUACIÓN | 14 | 7.14% |
 
 ## 8. Walk-Forward
 
-|   window |   train_wr |   test_wr |   test_tpd |   auc_test |
-|---------:|-----------:|----------:|-----------:|-----------:|
-|        1 |   0.352941 |         0 |        1.5 |     0.4379 |
-|        2 |   0        |         0 |        0.4 |     0.4651 |
-|        3 |   0        |         0 |        0   |     0.5055 |
-|        4 |   0        |         0 |        0   |     0.5271 |
-|        5 |   0        |         0 |        0   |     0.5535 |
+❌ Datos insuficientes
 
 ## 9. Monte Carlo (10,000 sims)
 
 | Métrica | Valor |
 |---------|-------|
-| mean_final | 1.0622140890226306 |
-| median_final | 1.059550296923836 |
-| p5_final | 0.9756843209775383 |
-| p95_final | 1.1567715211208305 |
-| mean_max_dd | 0.039321184684646286 |
-| p95_max_dd | 0.06873895718840618 |
+| mean_final | 0.9773210981063023 |
+| median_final | 0.9765982297210807 |
+| p5_final | 0.9652691633365763 |
+| p95_final | 0.9915029713922598 |
+| mean_max_dd | 0.022720441541069877 |
+| p95_max_dd | 0.03278952369144474 |
 | ruin_prob | 0.0 |
 
 ## 10. Certificación
 
 ### Razones de rechazo
-- ❌ AUC test bajo: 0.511 < 0.55
+- ❌ Train insuficiente: 67 < 100
+- ❌ Test insuficiente: 29 < 40
+- ❌ AUC test bajo: 0.500 < 0.55
 - ❌ OPHELIA WR test 0.0% < 55%
 
 ## 11. Últimas 20 Señales (OPHELIA + STANDARD)
 
 | Fecha ARG | Activo | Tier | Score | Dir | MFE | MAE | Dur | Win |
 |-----------|--------|------|-------|-----|-----|-----|-----|-----|
-| 2026-09-22 05:45:00 | AAVE/USDT | STANDARD | 0.516 | LONG | 0.140% | -0.259% | 5m | ❌ |
-| 2026-09-22 05:45:00 | SOL/USDT | STANDARD | 0.521 | LONG | 0.280% | -0.178% | 10m | ❌ |
-| 2026-09-22 05:45:00 | LDO/USDT | STANDARD | 0.522 | LONG | 0.165% | -1.392% | 15m | ❌ |
-| 2026-09-22 05:10:00 | ALGO/USDT | STANDARD | 0.520 | LONG | 0.090% | -0.269% | 10m | ❌ |
-| 2026-09-22 01:00:00 | ADA/USDT | STANDARD | 0.525 | LONG | 1.120% | -0.240% | 5m | ✅ |
-| 2026-09-21 23:30:00 | AVAX/USDT | STANDARD | 0.522 | LONG | 0.438% | -0.313% | 15m | ❌ |
-| 2026-09-21 23:25:00 | NEAR/USDT | STANDARD | 0.524 | LONG | 2.524% | -0.316% | 10m | ✅ |
-| 2026-09-21 21:40:00 | SEI/USDT | STANDARD | 0.528 | LONG | 0.350% | -0.449% | 5m | ❌ |
-| 2026-09-21 21:40:00 | ETC/USDT | STANDARD | 0.521 | LONG | 0.111% | -0.446% | 5m | ❌ |
-| 2026-09-21 00:30:00 | ADA/USDT | STANDARD | 0.529 | LONG | 0.215% | -0.344% | 25m | ❌ |
-| 2026-09-20 21:05:00 | DOGE/USDT | STANDARD | 0.526 | LONG | 0.512% | -0.228% | 5m | ❌ |
-| 2026-09-20 21:00:00 | SOL/USDT | STANDARD | 0.527 | LONG | 0.439% | 0.000% | 5m | ✅ |
-| 2026-09-20 11:40:00 | WIF/USDT | STANDARD | 0.533 | LONG | 0.305% | -0.254% | 15m | ❌ |
-| 2026-09-20 05:00:00 | CRV/USDT | STANDARD | 0.532 | LONG | 0.030% | -1.041% | 5m | ❌ |
-| 2026-09-20 03:20:00 | APT/USDT | STANDARD | 0.536 | LONG | 0.000% | -0.415% | 10m | ❌ |
-| 2026-09-19 21:35:00 | SUI/USDT | STANDARD | 0.530 | LONG | 0.438% | -0.450% | 20m | ❌ |
-| 2026-09-19 21:35:00 | PEPE/USDT | STANDARD | 0.541 | LONG | 0.242% | -0.726% | 25m | ❌ |
-| 2026-09-19 21:10:00 | SOL/USDT | STANDARD | 0.525 | LONG | 0.072% | -0.189% | 5m | ❌ |
-| 2026-09-19 21:05:00 | ETC/USDT | STANDARD | 0.524 | LONG | 0.581% | 0.000% | 5m | ✅ |
-| 2026-09-19 00:00:00 | UNI/USDT | STANDARD | 0.527 | LONG | 1.604% | -0.089% | 10m | ✅ |
+| 2026-09-23 05:30:00 | ATOM/USDT | STANDARD | 0.481 | LONG | 0.219% | -1.039% | 15m | ❌ |
+| 2026-09-23 01:55:00 | LTC/USDT | STANDARD | 0.523 | LONG | 0.701% | -0.234% | 5m | ❌ |
+| 2026-09-23 01:20:00 | BTC/USDT | OPHELIA | 0.582 | LONG | 0.135% | -0.128% | 5m | ❌ |
+| 2026-09-23 00:40:00 | OP/USDT | OPHELIA | 0.589 | LONG | 0.029% | -0.690% | 5m | ❌ |
+| 2026-09-23 00:40:00 | AVAX/USDT | STANDARD | 0.514 | LONG | 0.009% | -1.777% | 5m | ❌ |
+| 2026-09-23 00:40:00 | ETH/USDT | STANDARD | 0.486 | LONG | 0.006% | -0.235% | 5m | ❌ |
+| 2026-09-23 00:30:00 | XRP/USDT | STANDARD | 0.528 | LONG | 0.779% | -0.087% | 5m | ✅ |
+| 2026-09-22 22:15:00 | UNI/USDT | OPHELIA | 0.679 | LONG | 0.752% | -0.724% | 5m | ❌ |
+| 2026-09-22 21:15:00 | AAVE/USDT | STANDARD | 0.518 | LONG | 0.612% | -0.457% | 25m | ❌ |
+| 2026-09-22 21:10:00 | APT/USDT | OPHELIA | 0.678 | LONG | 0.000% | -0.844% | 5m | ❌ |
+| 2026-09-22 21:10:00 | VET/USDT | STANDARD | 0.519 | LONG | 0.000% | -0.309% | 5m | ❌ |
+| 2026-09-22 19:30:00 | DOT/USDT | STANDARD | 0.542 | LONG | 0.091% | -0.315% | 5m | ❌ |
+| 2026-09-22 16:30:00 | LTC/USDT | STANDARD | 0.536 | LONG | 0.000% | -0.963% | 5m | ❌ |
+| 2026-09-22 16:05:00 | AVAX/USDT | STANDARD | 0.534 | LONG | 0.045% | -0.523% | 5m | ❌ |
 
 ---
 

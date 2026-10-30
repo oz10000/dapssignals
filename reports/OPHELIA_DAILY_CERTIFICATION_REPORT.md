@@ -1,41 +1,42 @@
 # 🌟 OPHELIA DAILY CERTIFICATION REPORT
 
-**Generado:** 2026-10-29T12:25:47.202243+00:00 UTC
+**Generado:** 2026-10-30T12:18:54.667484+00:00 UTC
 **Estado:** ❌ NO CERTIFICADO
 
 ---
 
 ## 1. Validación de Hipótesis
 
-- AUC test: **0.3285** (≥0.55 = predictor útil)
-- Base rate test: 0.2812
+- AUC test: **0.5194** (≥0.55 = predictor útil)
+- Base rate test: 0.4737
 - ❌ **HIPÓTESIS RECHAZADA**: El OPHELIA Score no supera al azar en test
 
 ## 2. Thresholds Calibrados
 
 | Nivel | Threshold | WR Train | WR Test | TPD Train | TPD Test |
 |-------|-----------|----------|---------|-----------|----------|
-| **OPHELIA** | 0.550 | 100.00% | 0.00% | 2.00 | 2.00 |
-| **STANDARD** | 0.450 | 90.00% | 40.00% | 5.00 | 5.00 |
+| **OPHELIA** | 0.550 | 0.00% | 0.00% | 0.00 | 0.00 |
+| **STANDARD** | 0.450 | 28.17% | 40.00% | 2.29 | 5.00 |
 
 ## 3. OPHELIA RANKING — LONG
 
 | Rank | Activo | Score | Tier | Hora ARG | Tipo | Resultado |
 |------|--------|-------|------|----------|------|-----------|
-| 1 | BTC/USDT | 0.702 | OPHELIA | 16:55 | CONTINUACIÓN | ✅ |
-| 2 | AAVE/USDT | 0.701 | OPHELIA | 16:50 | CONTINUACIÓN | ✅ |
-| 3 | AVAX/USDT | 0.601 | OPHELIA | 03:00 | CONTINUACIÓN | ❌ |
-| 4 | SOL/USDT | 0.565 | OPHELIA | 02:00 | CONTINUACIÓN | ✅ |
-| 5 | LINK/USDT | 0.545 | STANDARD | 16:50 | CONTINUACIÓN | ✅ |
-| 6 | SEI/USDT | 0.543 | STANDARD | 18:00 | CONTINUACIÓN | ❌ |
-| 7 | SUI/USDT | 0.542 | STANDARD | 18:05 | CONTINUACIÓN | ✅ |
-| 8 | OP/USDT | 0.542 | STANDARD | 18:00 | CONTINUACIÓN | ❌ |
-| 9 | DOT/USDT | 0.541 | STANDARD | 18:15 | CONTINUACIÓN | ❌ |
-| 10 | VET/USDT | 0.540 | STANDARD | 05:55 | CONTINUACIÓN | ✅ |
-| 11 | BTC/USDT | 0.533 | STANDARD | 01:50 | CONTINUACIÓN | ❌ |
-| 12 | LTC/USDT | 0.529 | STANDARD | 06:20 | CONTINUACIÓN | ❌ |
-| 13 | AAVE/USDT | 0.527 | STANDARD | 02:05 | CONTINUACIÓN | ✅ |
-| 14 | ETC/USDT | 0.524 | STANDARD | 02:00 | CONTINUACIÓN | ✅ |
+| 1 | VET/USDT | 0.575 | OPHELIA | 22:45 | CONTINUACIÓN | ❌ |
+| 2 | VET/USDT | 0.574 | OPHELIA | 07:45 | CONTINUACIÓN | ❌ |
+| 3 | VET/USDT | 0.568 | OPHELIA | 18:15 | CONTINUACIÓN | ❌ |
+| 4 | VET/USDT | 0.567 | OPHELIA | 22:00 | CONTINUACIÓN | ❌ |
+| 5 | VET/USDT | 0.559 | OPHELIA | 22:45 | CONTINUACIÓN | ❌ |
+| 6 | VET/USDT | 0.549 | STANDARD | 23:45 | CONTINUACIÓN | ✅ |
+| 7 | VET/USDT | 0.548 | STANDARD | 21:00 | CONTINUACIÓN | ❌ |
+| 8 | VET/USDT | 0.547 | STANDARD | 07:00 | CONTINUACIÓN | ❌ |
+| 9 | VET/USDT | 0.546 | STANDARD | 00:45 | CONTINUACIÓN | ❌ |
+| 10 | INJ/USDT | 0.542 | STANDARD | 01:45 | CONTINUACIÓN | ❌ |
+| 11 | VET/USDT | 0.541 | STANDARD | 22:45 | CONTINUACIÓN | ✅ |
+| 12 | VET/USDT | 0.538 | STANDARD | 02:35 | CONTINUACIÓN | ❌ |
+| 13 | VET/USDT | 0.537 | STANDARD | 09:15 | CONTINUACIÓN | ✅ |
+| 14 | VET/USDT | 0.533 | STANDARD | 22:15 | CONTINUACIÓN | ❌ |
+| 15 | VET/USDT | 0.531 | STANDARD | 22:45 | CONTINUACIÓN | ✅ |
 
 ## 4. OPHELIA RANKING — SHORT
 
@@ -44,29 +45,29 @@ _Sin señales SHORT en el período._
 ## 5. Leverage por Nivel
 
 - OPHELIA: máx seguro **30x**, recomendado **21x**
-- MAE p95 histórico: 0.3648%
+- MAE p95 histórico: 0.5994%
 
 ## 6. Modelo Temporal
 
-- Trades/día promedio: 7.0
-- Intervalo medio: 81.0 min
-- Distribución: {'LONG': 14}
+- Trades/día promedio: 2.42
+- Intervalo medio: 682.8 min
+- Distribución: {'LONG': 75}
 
 ### Horas más frecuentes (ARG)
 
 | Hora | N trades |
 |------|----------|
-| 01:00 | 1 |
-| 02:00 | 3 |
-| 03:00 | 1 |
-| 16:00 | 3 |
-| 18:00 | 4 |
+| 01:00 | 7 |
+| 02:00 | 6 |
+| 21:00 | 10 |
+| 22:00 | 15 |
+| 23:00 | 14 |
 
 ## 7. Clasificación de Movimientos
 
 | Tipo | N | WR |
 |------|---|-----|
-| CONTINUACIÓN | 14 | 57.14% |
+| CONTINUACIÓN | 75 | 29.33% |
 
 ## 8. Walk-Forward
 
@@ -76,41 +77,46 @@ _Sin señales SHORT en el período._
 
 | Métrica | Valor |
 |---------|-------|
-| mean_final | 1.0216524565337528 |
-| median_final | 1.021637180105401 |
-| p5_final | 1.003422513832625 |
-| p95_final | 1.040706003286342 |
-| mean_max_dd | 0.004612429012737036 |
-| p95_max_dd | 0.009074919773221477 |
+| mean_final | 1.0099205425754594 |
+| median_final | 1.0089914296163245 |
+| p5_final | 0.9754359964822048 |
+| p95_final | 1.0474918673445177 |
+| mean_max_dd | 0.019242251587392133 |
+| p95_max_dd | 0.03535041320641226 |
 | ruin_prob | 0.0 |
 
 ## 10. Certificación
 
 ### Razones de rechazo
-- ❌ Train insuficiente: 73 < 100
-- ❌ Test insuficiente: 32 < 40
-- ❌ AUC test bajo: 0.329 < 0.55
+- ❌ Train insuficiente: 86 < 100
+- ❌ Test insuficiente: 38 < 40
+- ❌ AUC test bajo: 0.519 < 0.55
 - ❌ OPHELIA WR test 0.0% < 55%
-- ❌ Degradación excesiva: 100.0%
 
 ## 11. Últimas 20 Señales (OPHELIA + STANDARD)
 
 | Fecha ARG | Activo | Tier | Score | Dir | MFE | MAE | Dur | Win |
 |-----------|--------|------|-------|-----|-----|-----|-----|-----|
-| 2026-10-29 06:20:00 | LTC/USDT | STANDARD | 0.529 | LONG | 0.070% | -0.209% | 5m | ❌ |
-| 2026-10-29 05:55:00 | VET/USDT | STANDARD | 0.540 | LONG | 0.525% | 0.000% | 10m | ✅ |
-| 2026-10-29 03:00:00 | AVAX/USDT | OPHELIA | 0.601 | LONG | 0.183% | -0.217% | 10m | ❌ |
-| 2026-10-29 02:05:00 | AAVE/USDT | STANDARD | 0.527 | LONG | 0.594% | -0.053% | 5m | ✅ |
-| 2026-10-29 02:00:00 | SOL/USDT | OPHELIA | 0.565 | LONG | 0.359% | 0.000% | 10m | ✅ |
-| 2026-10-29 02:00:00 | ETC/USDT | STANDARD | 0.524 | LONG | 0.511% | 0.000% | 10m | ✅ |
-| 2026-10-29 01:50:00 | BTC/USDT | STANDARD | 0.533 | LONG | 0.036% | -0.084% | 5m | ❌ |
-| 2026-10-28 18:15:00 | DOT/USDT | STANDARD | 0.541 | LONG | 0.126% | -0.389% | 5m | ❌ |
-| 2026-10-28 18:05:00 | SUI/USDT | STANDARD | 0.542 | LONG | 0.685% | -0.127% | 10m | ✅ |
-| 2026-10-28 18:00:00 | SEI/USDT | STANDARD | 0.543 | LONG | 0.685% | -0.352% | 30m | ❌ |
-| 2026-10-28 18:00:00 | OP/USDT | STANDARD | 0.542 | LONG | 0.123% | -0.280% | 5m | ❌ |
-| 2026-10-28 16:55:00 | BTC/USDT | OPHELIA | 0.702 | LONG | 0.270% | 0.000% | 5m | ✅ |
-| 2026-10-28 16:50:00 | AAVE/USDT | OPHELIA | 0.701 | LONG | 0.631% | -0.029% | 5m | ✅ |
-| 2026-10-28 16:50:00 | LINK/USDT | STANDARD | 0.545 | LONG | 1.532% | 0.000% | 10m | ✅ |
+| 2026-10-30 05:00:00 | CRV/USDT | STANDARD | 0.531 | LONG | 0.000% | -0.667% | 5m | ❌ |
+| 2026-10-30 01:45:00 | INJ/USDT | STANDARD | 0.542 | LONG | 0.216% | -0.338% | 5m | ❌ |
+| 2026-10-30 00:35:00 | NEAR/USDT | STANDARD | 0.524 | LONG | 0.749% | -0.048% | 15m | ✅ |
+| 2026-10-30 00:35:00 | AAVE/USDT | STANDARD | 0.530 | LONG | 0.395% | -0.936% | 25m | ❌ |
+| 2026-10-30 00:25:00 | WIF/USDT | STANDARD | 0.529 | LONG | 0.595% | -0.060% | 15m | ✅ |
+| 2026-10-29 23:35:00 | NEAR/USDT | STANDARD | 0.496 | LONG | 0.073% | -0.634% | 10m | ❌ |
+| 2026-10-29 23:25:00 | SEI/USDT | STANDARD | 0.491 | LONG | 0.272% | -0.503% | 20m | ❌ |
+| 2026-10-29 23:25:00 | PEPE/USDT | STANDARD | 0.492 | LONG | 0.166% | -0.684% | 5m | ❌ |
+| 2026-10-29 23:10:00 | ATOM/USDT | STANDARD | 0.493 | LONG | 1.198% | -0.200% | 85m | ✅ |
+| 2026-10-29 02:35:00 | VET/USDT | STANDARD | 0.538 | LONG | 0.000% | -0.291% | 5m | ❌ |
+| 2026-10-28 00:45:00 | VET/USDT | STANDARD | 0.546 | LONG | 0.062% | -0.262% | 10m | ❌ |
+| 2026-10-27 22:40:00 | VET/USDT | STANDARD | 0.527 | LONG | 0.138% | -0.477% | 30m | ❌ |
+| 2026-10-27 07:45:00 | VET/USDT | OPHELIA | 0.574 | LONG | 0.000% | -0.421% | 5m | ❌ |
+| 2026-10-26 21:00:00 | VET/USDT | STANDARD | 0.548 | LONG | 0.000% | -0.212% | 5m | ❌ |
+| 2026-10-26 02:40:00 | VET/USDT | STANDARD | 0.519 | LONG | 0.267% | 0.000% | 10m | ✅ |
+| 2026-10-26 01:35:00 | VET/USDT | STANDARD | 0.481 | LONG | 0.000% | -0.327% | 5m | ❌ |
+| 2026-10-25 07:00:00 | VET/USDT | STANDARD | 0.547 | LONG | 0.223% | -0.149% | 15m | ❌ |
+| 2026-10-25 01:10:00 | VET/USDT | STANDARD | 0.493 | LONG | 0.000% | -0.087% | 5m | ❌ |
+| 2026-10-23 23:05:00 | VET/USDT | STANDARD | 0.500 | LONG | 0.222% | -0.375% | 10m | ❌ |
+| 2026-10-23 22:05:00 | VET/USDT | STANDARD | 0.475 | LONG | 0.633% | 0.000% | 10m | ✅ |
 
 ---
 

@@ -1,38 +1,38 @@
 # 🌟 OPHELIA DAILY CERTIFICATION REPORT
 
-**Generado:** 2026-11-02T14:56:18.205100+00:00 UTC
+**Generado:** 2026-11-03T13:45:58.691813+00:00 UTC
 **Estado:** ❌ NO CERTIFICADO
 
 ---
 
 ## 1. Validación de Hipótesis
 
-- AUC test: **0.4318** (≥0.55 = predictor útil)
-- Base rate test: 0.0833
+- AUC test: **0.2500** (≥0.55 = predictor útil)
+- Base rate test: 0.2381
 - ❌ **HIPÓTESIS RECHAZADA**: El OPHELIA Score no supera al azar en test
 
 ## 2. Thresholds Calibrados
 
 | Nivel | Threshold | WR Train | WR Test | TPD Train | TPD Test |
 |-------|-----------|----------|---------|-----------|----------|
-| **OPHELIA** | 0.550 | 0.00% | 0.00% | 0.00 | 0.00 |
-| **STANDARD** | 0.450 | 60.00% | 0.00% | 5.00 | 4.50 |
+| **OPHELIA** | 0.550 | 0.00% | 0.00% | 1.50 | 2.00 |
+| **STANDARD** | 0.450 | 20.00% | 20.00% | 5.00 | 5.00 |
 
 ## 3. OPHELIA RANKING — LONG
 
 | Rank | Activo | Score | Tier | Hora ARG | Tipo | Resultado |
 |------|--------|-------|------|----------|------|-----------|
-| 1 | ARB/USDT | 0.551 | OPHELIA | 19:55 | CONTINUACIÓN | ❌ |
-| 2 | SEI/USDT | 0.548 | STANDARD | 20:00 | CONTINUACIÓN | ✅ |
-| 3 | VET/USDT | 0.546 | STANDARD | 03:05 | CONTINUACIÓN | ❌ |
-| 4 | UNI/USDT | 0.542 | STANDARD | 20:00 | CONTINUACIÓN | ✅ |
-| 5 | LDO/USDT | 0.541 | STANDARD | 00:30 | CONTINUACIÓN | ❌ |
-| 6 | BTC/USDT | 0.541 | STANDARD | 22:40 | CONTINUACIÓN | ❌ |
-| 7 | BNB/USDT | 0.535 | STANDARD | 00:40 | CONTINUACIÓN | ❌ |
-| 8 | ETH/USDT | 0.534 | STANDARD | 00:20 | CONTINUACIÓN | ❌ |
-| 9 | BTC/USDT | 0.531 | STANDARD | 20:25 | CONTINUACIÓN | ✅ |
-| 10 | SEI/USDT | 0.530 | STANDARD | 00:30 | CONTINUACIÓN | ❌ |
-| 11 | SOL/USDT | 0.527 | STANDARD | 00:20 | CONTINUACIÓN | ❌ |
+| 1 | PEPE/USDT | 0.846 | OPHELIA | 19:50 | CONTINUACIÓN | ❌ |
+| 2 | CRV/USDT | 0.768 | OPHELIA | 18:50 | CONTINUACIÓN | ❌ |
+| 3 | NEAR/USDT | 0.732 | OPHELIA | 01:45 | CONTINUACIÓN | ❌ |
+| 4 | XRP/USDT | 0.730 | OPHELIA | 08:00 | CONTINUACIÓN | ❌ |
+| 5 | PEPE/USDT | 0.545 | STANDARD | 22:25 | CONTINUACIÓN | ❌ |
+| 6 | ARB/USDT | 0.536 | STANDARD | 01:25 | CONTINUACIÓN | ❌ |
+| 7 | OP/USDT | 0.527 | STANDARD | 01:25 | CONTINUACIÓN | ❌ |
+| 8 | BNB/USDT | 0.520 | STANDARD | 06:25 | CONTINUACIÓN | ❌ |
+| 9 | ATOM/USDT | 0.488 | STANDARD | 02:20 | CONTINUACIÓN | ❌ |
+| 10 | CRV/USDT | 0.477 | STANDARD | 06:10 | CONTINUACIÓN | ❌ |
+| 11 | SEI/USDT | 0.468 | STANDARD | 18:55 | CONTINUACIÓN | ❌ |
 
 ## 4. OPHELIA RANKING — SHORT
 
@@ -41,29 +41,29 @@ _Sin señales SHORT en el período._
 ## 5. Leverage por Nivel
 
 - OPHELIA: máx seguro **30x**, recomendado **21x**
-- MAE p95 histórico: 0.2861%
+- MAE p95 histórico: 0.3866%
 
 ## 6. Modelo Temporal
 
 - Trades/día promedio: 5.5
-- Intervalo medio: 185.0 min
+- Intervalo medio: 87.8 min
 - Distribución: {'LONG': 11}
 
 ### Horas más frecuentes (ARG)
 
 | Hora | N trades |
 |------|----------|
-| 00:00 | 5 |
-| 03:00 | 1 |
+| 01:00 | 3 |
+| 06:00 | 2 |
+| 18:00 | 2 |
 | 19:00 | 1 |
-| 20:00 | 3 |
 | 22:00 | 1 |
 
 ## 7. Clasificación de Movimientos
 
 | Tipo | N | WR |
 |------|---|-----|
-| CONTINUACIÓN | 11 | 27.27% |
+| CONTINUACIÓN | 11 | 0.00% |
 
 ## 8. Walk-Forward
 
@@ -73,37 +73,37 @@ _Sin señales SHORT en el período._
 
 | Métrica | Valor |
 |---------|-------|
-| mean_final | 1.001475984258118 |
-| median_final | 1.001005342497645 |
-| p5_final | 0.9925234134458677 |
-| p95_final | 1.011803123678231 |
-| mean_max_dd | 0.004196995653593522 |
-| p95_max_dd | 0.0077628981024184295 |
+| mean_final | 0.9878694217701597 |
+| median_final | 0.9879301956342337 |
+| p5_final | 0.9850130067110304 |
+| p95_final | 0.9905141715297316 |
+| mean_max_dd | 0.011040510707354751 |
+| p95_max_dd | 0.013801938698414081 |
 | ruin_prob | 0.0 |
 
 ## 10. Certificación
 
 ### Razones de rechazo
-- ❌ Train insuficiente: 56 < 100
-- ❌ Test insuficiente: 24 < 40
-- ❌ AUC test bajo: 0.432 < 0.55
+- ❌ Train insuficiente: 48 < 100
+- ❌ Test insuficiente: 21 < 40
+- ❌ AUC test bajo: 0.250 < 0.55
 - ❌ OPHELIA WR test 0.0% < 55%
 
 ## 11. Últimas 20 Señales (OPHELIA + STANDARD)
 
 | Fecha ARG | Activo | Tier | Score | Dir | MFE | MAE | Dur | Win |
 |-----------|--------|------|-------|-----|-----|-----|-----|-----|
-| 2026-11-02 00:40:00 | BNB/USDT | STANDARD | 0.535 | LONG | 0.105% | -0.138% | 10m | ❌ |
-| 2026-11-02 00:30:00 | LDO/USDT | STANDARD | 0.541 | LONG | 0.029% | -0.319% | 15m | ❌ |
-| 2026-11-02 00:30:00 | SEI/USDT | STANDARD | 0.530 | LONG | 0.123% | -0.225% | 10m | ❌ |
-| 2026-11-02 00:20:00 | ETH/USDT | STANDARD | 0.534 | LONG | 0.249% | -0.253% | 5m | ❌ |
-| 2026-11-02 00:20:00 | SOL/USDT | STANDARD | 0.527 | LONG | 0.209% | -0.189% | 5m | ❌ |
-| 2026-11-01 22:40:00 | BTC/USDT | STANDARD | 0.541 | LONG | 0.001% | -0.081% | 5m | ❌ |
-| 2026-11-01 20:25:00 | BTC/USDT | STANDARD | 0.531 | LONG | 0.130% | -0.015% | 5m | ✅ |
-| 2026-11-01 20:00:00 | SEI/USDT | STANDARD | 0.548 | LONG | 0.603% | 0.000% | 10m | ✅ |
-| 2026-11-01 20:00:00 | UNI/USDT | STANDARD | 0.542 | LONG | 0.376% | -0.042% | 5m | ✅ |
-| 2026-11-01 19:55:00 | ARB/USDT | OPHELIA | 0.551 | LONG | 0.226% | -0.153% | 5m | ❌ |
-| 2026-11-01 03:05:00 | VET/USDT | STANDARD | 0.546 | LONG | 0.000% | -0.118% | 5m | ❌ |
+| 2026-11-03 08:00:00 | XRP/USDT | OPHELIA | 0.730 | LONG | 0.310% | -0.064% | 5m | ❌ |
+| 2026-11-03 06:25:00 | BNB/USDT | STANDARD | 0.520 | LONG | 0.073% | -0.099% | 5m | ❌ |
+| 2026-11-03 06:10:00 | CRV/USDT | STANDARD | 0.477 | LONG | 0.076% | -0.304% | 25m | ❌ |
+| 2026-11-03 02:20:00 | ATOM/USDT | STANDARD | 0.488 | LONG | 0.139% | -0.208% | 5m | ❌ |
+| 2026-11-03 01:45:00 | NEAR/USDT | OPHELIA | 0.732 | LONG | 0.026% | -0.234% | 5m | ❌ |
+| 2026-11-03 01:25:00 | ARB/USDT | STANDARD | 0.536 | LONG | 0.000% | -0.124% | 5m | ❌ |
+| 2026-11-03 01:25:00 | OP/USDT | STANDARD | 0.527 | LONG | 0.110% | -0.312% | 15m | ❌ |
+| 2026-11-02 22:25:00 | PEPE/USDT | STANDARD | 0.545 | LONG | 0.054% | -0.455% | 10m | ❌ |
+| 2026-11-02 19:50:00 | PEPE/USDT | OPHELIA | 0.846 | LONG | 0.104% | -0.316% | 5m | ❌ |
+| 2026-11-02 18:55:00 | SEI/USDT | STANDARD | 0.468 | LONG | 0.021% | -0.318% | 5m | ❌ |
+| 2026-11-02 18:50:00 | CRV/USDT | OPHELIA | 0.768 | LONG | 0.225% | -0.150% | 10m | ❌ |
 
 ---
 

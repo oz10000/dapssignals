@@ -1,31 +1,36 @@
 # 🌟 OPHELIA DAILY CERTIFICATION REPORT
 
-**Generado:** 2026-11-11T13:42:17.219748+00:00 UTC
+**Generado:** 2026-11-12T14:45:58.945702+00:00 UTC
 **Estado:** ❌ NO CERTIFICADO
 
 ---
 
 ## 1. Validación de Hipótesis
 
-- AUC test: **0.4902** (≥0.55 = predictor útil)
-- Base rate test: 0.2609
+- AUC test: **nan** (≥0.55 = predictor útil)
+- Base rate test: 0.0000
 - ❌ **HIPÓTESIS RECHAZADA**: El OPHELIA Score no supera al azar en test
 
 ## 2. Thresholds Calibrados
 
 | Nivel | Threshold | WR Train | WR Test | TPD Train | TPD Test |
 |-------|-----------|----------|---------|-----------|----------|
-| **OPHELIA** | 0.550 | 50.00% | 50.00% | 2.00 | 2.00 |
-| **STANDARD** | 0.550 | 60.00% | 40.00% | 5.00 | 2.50 |
+| **OPHELIA** | 0.550 | 25.00% | 0.00% | 2.00 | 2.00 |
+| **STANDARD** | 0.450 | 10.00% | 0.00% | 5.00 | 5.00 |
 
 ## 3. OPHELIA RANKING — LONG
 
 | Rank | Activo | Score | Tier | Hora ARG | Tipo | Resultado |
 |------|--------|-------|------|----------|------|-----------|
-| 1 | PEPE/USDT | 0.784 | OPHELIA | 21:00 | CONTINUACIÓN | ❌ |
-| 2 | VET/USDT | 0.672 | OPHELIA | 01:25 | CONTINUACIÓN | ✅ |
-| 3 | UNI/USDT | 0.564 | OPHELIA | 07:20 | CONTINUACIÓN | ✅ |
-| 4 | ALGO/USDT | 0.561 | OPHELIA | 04:20 | CONTINUACIÓN | ❌ |
+| 1 | DOGE/USDT | 0.894 | OPHELIA | 19:15 | CONTINUACIÓN | ❌ |
+| 2 | VET/USDT | 0.819 | OPHELIA | 07:30 | CONTINUACIÓN | ✅ |
+| 3 | LDO/USDT | 0.801 | OPHELIA | 07:00 | CONTINUACIÓN | ❌ |
+| 4 | WIF/USDT | 0.732 | OPHELIA | 03:25 | CONTINUACIÓN | ❌ |
+| 5 | CRV/USDT | 0.547 | STANDARD | 01:55 | CONTINUACIÓN | ❌ |
+| 6 | PEPE/USDT | 0.468 | STANDARD | 08:45 | CONTINUACIÓN | ❌ |
+| 7 | ALGO/USDT | 0.463 | STANDARD | 23:15 | CONTINUACIÓN | ❌ |
+| 8 | WIF/USDT | 0.462 | STANDARD | 23:15 | CONTINUACIÓN | ❌ |
+| 9 | ARB/USDT | 0.454 | STANDARD | 02:05 | CONTINUACIÓN | ❌ |
 
 ## 4. OPHELIA RANKING — SHORT
 
@@ -34,28 +39,29 @@ _Sin señales SHORT en el período._
 ## 5. Leverage por Nivel
 
 - OPHELIA: máx seguro **30x**, recomendado **21x**
-- MAE p95 histórico: 0.4550%
+- MAE p95 histórico: 0.4722%
 
 ## 6. Modelo Temporal
 
-- Trades/día promedio: 2.0
-- Intervalo medio: 598.3 min
-- Distribución: {'LONG': 4}
+- Trades/día promedio: 4.5
+- Intervalo medio: 216.4 min
+- Distribución: {'LONG': 9}
 
 ### Horas más frecuentes (ARG)
 
 | Hora | N trades |
 |------|----------|
 | 01:00 | 1 |
-| 04:00 | 1 |
-| 07:00 | 1 |
-| 21:00 | 1 |
+| 02:00 | 1 |
+| 07:00 | 2 |
+| 19:00 | 1 |
+| 23:00 | 2 |
 
 ## 7. Clasificación de Movimientos
 
 | Tipo | N | WR |
 |------|---|-----|
-| CONTINUACIÓN | 4 | 50.00% |
+| CONTINUACIÓN | 9 | 11.11% |
 
 ## 8. Walk-Forward
 
@@ -65,30 +71,35 @@ _Sin señales SHORT en el período._
 
 | Métrica | Valor |
 |---------|-------|
-| mean_final | 1.0024053030654938 |
-| median_final | 1.002472183046386 |
-| p5_final | 0.9927254840037336 |
-| p95_final | 1.0130580964686513 |
-| mean_max_dd | 0.003117211617888194 |
-| p95_max_dd | 0.00750462911388806 |
+| mean_final | 0.9933106192823856 |
+| median_final | 0.9930848312357532 |
+| p5_final | 0.9886330649303712 |
+| p95_final | 0.9985863373324777 |
+| mean_max_dd | 0.006663643549842231 |
+| p95_max_dd | 0.010455034779020113 |
 | ruin_prob | 0.0 |
 
 ## 10. Certificación
 
 ### Razones de rechazo
-- ❌ Train insuficiente: 53 < 100
-- ❌ Test insuficiente: 23 < 40
-- ❌ AUC test bajo: 0.490 < 0.55
-- ❌ OPHELIA WR test 50.0% < 55%
+- ❌ Train insuficiente: 26 < 100
+- ❌ Test insuficiente: 12 < 40
+- ❌ OPHELIA WR test 0.0% < 55%
+- ❌ Degradación excesiva: 25.0%
 
 ## 11. Últimas 20 Señales (OPHELIA + STANDARD)
 
 | Fecha ARG | Activo | Tier | Score | Dir | MFE | MAE | Dur | Win |
 |-----------|--------|------|-------|-----|-----|-----|-----|-----|
-| 2026-11-11 07:20:00 | UNI/USDT | OPHELIA | 0.564 | LONG | 0.558% | 0.000% | 5m | ✅ |
-| 2026-11-11 04:20:00 | ALGO/USDT | OPHELIA | 0.561 | LONG | 0.033% | -0.177% | 5m | ❌ |
-| 2026-11-10 21:00:00 | PEPE/USDT | OPHELIA | 0.784 | LONG | 0.567% | -0.504% | 15m | ❌ |
-| 2026-11-10 01:25:00 | VET/USDT | OPHELIA | 0.672 | LONG | 0.363% | 0.000% | 5m | ✅ |
+| 2026-11-12 08:45:00 | PEPE/USDT | STANDARD | 0.468 | LONG | 0.254% | -0.251% | 5m | ❌ |
+| 2026-11-12 07:00:00 | LDO/USDT | OPHELIA | 0.801 | LONG | 0.000% | -0.352% | 5m | ❌ |
+| 2026-11-12 03:25:00 | WIF/USDT | OPHELIA | 0.732 | LONG | 0.000% | -0.259% | 5m | ❌ |
+| 2026-11-12 02:05:00 | ARB/USDT | STANDARD | 0.454 | LONG | 0.106% | -0.409% | 5m | ❌ |
+| 2026-11-12 01:55:00 | CRV/USDT | STANDARD | 0.547 | LONG | 0.000% | -0.373% | 5m | ❌ |
+| 2026-11-11 23:15:00 | ALGO/USDT | STANDARD | 0.463 | LONG | 0.112% | -0.279% | 5m | ❌ |
+| 2026-11-11 23:15:00 | WIF/USDT | STANDARD | 0.462 | LONG | 0.064% | -0.514% | 5m | ❌ |
+| 2026-11-11 19:15:00 | DOGE/USDT | OPHELIA | 0.894 | LONG | 0.000% | -0.204% | 5m | ❌ |
+| 2026-11-11 07:30:00 | VET/USDT | OPHELIA | 0.819 | LONG | 0.270% | 0.000% | 5m | ✅ |
 
 ---
 
